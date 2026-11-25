@@ -1,0 +1,6 @@
+{
+  "rule": "eer",
+  "threshold": 0.2890167066029139,
+  "validation_eer": 0.05714285714285714,
+  "source": "protocols/fvc2002_db1_val/validation_pairs.csv"
+}

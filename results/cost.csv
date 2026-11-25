@@ -1,0 +1,3 @@
+run,params_total,params_trainable,model_size_mb,inference_mean_ms,train_minutes,hardware,input_size,torch
+convnext_tiny_hong,28014432,26782464,112.131017,6.475558666666832,2.5825876434644064,NVIDIA L4,224,2.14.1+cu130
+convnext_tiny_none,28014432,26782464,112.131017,6.476050200003935,2.5708319822947185,NVIDIA L4,224,2.14.1+cu130

@@ -1,0 +1,55 @@
+[project]
+name = "fpverif"
+version = "0.1.0"
+description = "Fingerprint verification 1:1 with CNN embeddings on FVC2002 DB1 and FVC2004 DB1"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "pyyaml>=6.0",
+    "pillow>=10.0",
+    "scikit-image>=0.24",
+    "opencv-python-headless>=4.10",
+    "scikit-learn>=1.5",
+    "matplotlib>=3.9",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+cpu = ["torch==2.6.0", "torchvision==0.21.0"]
+cu124 = ["torch==2.6.0", "torchvision==0.21.0"]
+dev = ["pytest>=8.0"]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "cu124" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu124", extra = "cu124" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu124", extra = "cu124" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["fpverif"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

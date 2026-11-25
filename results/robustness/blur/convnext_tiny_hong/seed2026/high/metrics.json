@@ -1,0 +1,20 @@
+{
+  "n_genuine": 840,
+  "n_impostor": 27840,
+  "threshold": 0.3156963382896624,
+  "fmr": 0.20732758620689656,
+  "fnmr": 0.2154761904761905,
+  "eer": 0.2130952380952381,
+  "eer_threshold": 0.3123742299420493,
+  "auc": 0.8563822394978106,
+  "d_prime": 1.5387568473815918,
+  "fmr100_fnmr": 0.7130952380952381,
+  "fmr1000_fnmr": 0.8666666666666667,
+  "tar_at_far_1pct": 0.2869047619047619,
+  "tar_at_far_0_1pct": 0.1333333333333333,
+  "fta": 0.012499999999999956,
+  "far": 0.20473599137931037,
+  "frr": 0.22528273809523808,
+  "pairs_dropped": 0.0,
+  "fta_note": "fta is the per-sample failure-to-acquire rate from qc.csv over the samples in these pairs; pairs_dropped is the fraction of pairs removed because one of their samples failed"
+}

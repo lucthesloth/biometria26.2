@@ -1,0 +1,10 @@
+{
+  "mode": "official",
+  "dataset": "fvc2004_db1",
+  "n_images": 880,
+  "rule": "fvc",
+  "subset": "A",
+  "test_fingers": 100,
+  "n_genuine": 2800,
+  "n_impostor": 4950
+}

@@ -1,0 +1,365 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage[locale=DE,group-separator={\,},group-minimum-digits=4]{siunitx}
+\usepackage{url}
+
+\newcommand{\repourl}{\url{https://github.com/lucthesloth/biometria26.2}}
+\newcommand{\repoversion}{final-v1.0}
+
+\AtBeginDocument{\renewcommand{\IEEEkeywordsname}{Palavras-chave}}
+
+\begin{document}
+
+\title{Verificação 1:1 de impressões digitais com embeddings de uma ConvNeXt-Tiny: FVC2002 DB1 e avaliação na FVC2004 DB1}
+
+\author{%
+\IEEEauthorblockN{Lucas Ribeiro de Carvalho}
+\IEEEauthorblockA{Universidade Tecnológica Federal do Paraná (UTFPR)\\
+Ponta Grossa, Brasil\\
+ORCID: \url{https://orcid.org/0009-0005-2339-0093}}
+}
+
+\maketitle
+
+\begin{abstract}
+Este trabalho monta e avalia um sistema de verificação 1:1 de impressões digitais em que uma CNN gera um embedding de 256 dimensões por imagem e a decisão vem da similaridade de cosseno entre dois embeddings. A rede é uma ConvNeXt-Tiny pré-treinada na ImageNet-1k e ajustada com perda ArcFace em 480 imagens de 60 dedos da FVC2002 DB1. Vinte dedos de validação escolhem a época e fixam o limiar, e 30 dedos de teste medem o desempenho. O mesmo modelo e o mesmo limiar são depois avaliados, sem novo ajuste, na FVC2004 DB1, de outro sensor. Com três seeds de treino, a EER é de $9{,}75\pm0{,}63$\% no teste da FVC2002 DB1 e de $14{,}18\pm1{,}49$\% e $14{,}49\pm0{,}97$\% na FVC2004 DB1, nos 30 dedos de teste e no protocolo oficial do conjunto A. No limiar congelado, a FNMR passa de 9,2\% na base principal para 14,7\% e 18,2\% na segunda. Um desfoque gaussiano de $\sigma=3$ pixels leva a EER a 21,2\% e uma rotação de $30^\circ$ a 12,5\%. Na ablação, treinar sem a normalização de intensidade muda a EER em menos de 0,6 ponto nas três avaliações, dentro da variação entre seeds. A rede tem 28,0 milhões de parâmetros, 112~MB de pesos e leva 6,5~ms por imagem numa GPU NVIDIA L4.
+\end{abstract}
+
+\begin{IEEEkeywords}
+impressão digital, verificação biométrica, embedding, ConvNeXt, ArcFace, FVC2002, FVC2004, avaliação entre bases
+\end{IEEEkeywords}
+
+% ---------------------------------------------------------------------------
+\section{Introdução}
+\label{sec:intro}
+
+Na verificação 1:1, o sistema recebe duas amostras biométricas e decide se elas vêm da mesma identidade. Para impressões digitais, a identidade é o dedo. Os comparadores clássicos extraem minúcias, isto é, terminações e bifurcações de cristas, e alinham dois conjuntos de tamanho variável a cada comparação~\cite{jain1997online,cappelli2010mcc,maltoni2022handbook}. Uma alternativa é treinar uma rede convolucional (CNN) que mapeia cada imagem para um vetor de tamanho fixo, o embedding. A comparação passa a ser um produto interno entre dois vetores normalizados, e o template tem o mesmo tamanho para qualquer dedo~\cite{engelsma2021deepprint}.
+
+Este trabalho segue o enunciado do projeto final da disciplina de Biometria. O objetivo é um experimento correto, reprodutível e comparável, e não a maior acurácia possível. A base principal da equipe é a FVC2002 DB1 e a segunda base é a FVC2004 DB1~\cite{maio2002fvc2002,maio2004fvc2004}. A base principal serve ao desenvolvimento, ao treino e à validação. A segunda só recebe o sistema pronto, com modelo e limiar congelados.
+
+O artigo responde a quatro perguntas, uma por experimento do enunciado. (A) Que desempenho o sistema tem em dedos da base principal que não entraram no treino? (B) Como a CNN se comporta nas duas bases, nos mesmos pares de comparação? (C) Quanto desse desempenho sobrevive na segunda base, sem novo ajuste? (D) O que acontece com as taxas de erro quando as imagens sofrem desfoque ou rotação? Uma ablação mede o efeito da normalização de intensidade. Código, protocolos e scores estão em \repourl, versão \texttt{\repoversion}.
+
+% ---------------------------------------------------------------------------
+\section{Trabalhos relacionados}
+\label{sec:relacionados}
+
+\emph{Minúcias.} Jain et~al.~\cite{jain1997online} descrevem o sistema clássico de verificação por alinhamento de minúcias, e o Minutia Cylinder-Code~\cite{cappelli2010mcc} codifica a vizinhança de cada minúcia numa estrutura local de tamanho fixo. Esses métodos dependem de uma boa extração de cristas, e por isso a literatura de pré-processamento é extensa: Hong, Wan e Jain~\cite{hong1998enhancement} propõem a normalização de média e variância usada aqui e a filtragem contextual por filtros de Gabor, e o \emph{Handbook of Fingerprint Recognition}~\cite{maltoni2022handbook} reúne as técnicas de segmentação, realce e comparação.
+
+\emph{Representações de tamanho fixo.} O DeepPrint~\cite{engelsma2021deepprint} treina uma CNN que produz um vetor de 192 dimensões, com alinhamento aprendido e supervisão por minúcias, em \num{455000} impressões de \num{38291} dedos. O AFR-Net~\cite{grosz2024afrnet} combina uma CNN e um transformador de visão, treinados com perda de margem angular em cerca de 1,3 milhão de imagens. O IFViT~\cite{qiu2024ifvit} e o JIPNet~\cite{guan2024jipnet} usam transformadores para comparar pares de imagens, o segundo com foco em impressões parciais. Engelsma et~al.~\cite{engelsma2022printsgan} geram impressões sintéticas para ampliar o treino, e Liu et~al.~\cite{liu2019aligned} treinam uma representação alinhada numa base própria e a testam em bases FVC e NIST.
+
+\emph{Perda e arquitetura.} A ArcFace~\cite{deng2019arcface}, criada para reconhecimento facial, soma uma margem ao ângulo entre o embedding e o peso da classe correta e produz embeddings que se comparam por cosseno. A ConvNeXt~\cite{liu2022convnext} é uma CNN que adota escolhas de projeto dos transformadores, como convoluções de $7\times7$ e LayerNorm.
+
+\emph{Avaliação.} As competições FVC~\cite{maio2002fvc2002,maio2004fvc2004} definem bases públicas e um protocolo de pares genuínos e impostores, e a norma ISO/IEC 19795-1~\cite{iso19795-1} define FMR, FNMR e a taxa de falha de aquisição (FTA).
+
+\emph{Posição deste trabalho.} Os modelos acima usam de centenas de milhares a milhões de imagens. Aqui o ajuste fino dispõe de 480 imagens de um sensor, como pede o enunciado, e o interesse está no protocolo: divisão por identidade, limiar fixado na validação e a mesma avaliação repetida numa segunda base.
+
+% ---------------------------------------------------------------------------
+\section{Base de dados}
+\label{sec:dados}
+
+\subsection{Bases}
+
+As bases FVC2002 DB1 e FVC2004 DB1 vêm das competições de verificação do BioLab da Universidade de Bolonha~\cite{maio2002fvc2002,maio2004fvc2004}. A FVC2002 DB1 usa o sensor óptico Identix TouchView~II ($388\times374$ pixels, 500~dpi) e a FVC2004 DB1 o óptico CrossMatch V300 ($640\times480$ pixels, 500~dpi). A coleta da FVC2004 pediu de propósito variações de pressão, rotação e umidade~\cite{maio2004fvc2004}. Cada base tem o conjunto A, com 100 dedos, e o conjunto B, com 10 dedos (101 a 110), sempre com 8 impressões por dedo, o que dá \num{880} imagens por base em tons de cinza. Os dois conjuntos estão no material suplementar do \emph{Handbook of Fingerprint Recognition}~\cite{maltoni2022handbook}. As imagens não são redistribuídas no repositório.
+
+\subsection{Divisão por identidade}
+
+Com seed 42, os 110 dedos da FVC2002 DB1 são divididos em 60 para treino (480 imagens), 20 para validação (160) e 30 para teste (240). Nenhum dedo aparece em mais de uma parte (Tabela~\ref{tab:bases}). A validação escolhe a época e fixa o limiar, e o teste dá o Experimento~A. A FVC2004 DB1 nunca entra no treino. A mesma função e a mesma seed geram a divisão dela, e seus 30 dedos de teste dão o Experimento~C.
+
+O enunciado manda usar o protocolo oficial quando ele existe. O protocolo oficial da FVC reserva o conjunto B, de 10 dedos, para ajuste e testa no conjunto A. Dez dedos não bastam para treinar e validar uma CNN com identidades separadas. Na base principal usamos por isso o protocolo comum de seed fixa, previsto no enunciado, sobre os 110 dedos. Na segunda base, onde não há treino, aplicamos também o protocolo oficial no conjunto A inteiro.
+
+\begin{table}[t]
+\centering
+\caption{Bases e divisão por identidade (seed 42). Dedos$\times$impressões.}
+\label{tab:bases}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Base & Treino & Validação & Teste \\
+\midrule
+FVC2002 DB1 (A+B) & $60\times8$ & $20\times8$ & $30\times8$ (Exp.~A) \\
+FVC2004 DB1 (A+B) & -- & -- & $30\times8$ (Exp.~C) \\
+FVC2004 DB1-A, oficial & -- & -- & $100\times8$ (Exp.~C) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Pares de comparação}
+
+Os pares genuínos são todas as combinações de duas impressões do mesmo dedo, $\binom{8}{2}=28$ por dedo. Os pares impostores são todos os pares de imagens de dedos diferentes. A validação tem 560 genuínos e \num{12160} impostores, e cada conjunto de teste de 30 dedos tem 840 genuínos e \num{27840} impostores. O protocolo oficial compara, no conjunto A, todas as impressões do mesmo dedo (\num{2800} genuínos) e a primeira impressão de cada dedo com a primeira dos outros (\num{4950} impostores)~\cite{maio2004fvc2004}. Os arquivos \texttt{train.csv}, \texttt{validation.csv}, \texttt{test.csv}, \texttt{genuine\_pairs.csv} e \texttt{impostor\_pairs.csv} de cada protocolo ficam na pasta \texttt{protocols/}, e qualquer outra CNN pode ser avaliada nos mesmos pares.
+
+% ---------------------------------------------------------------------------
+\section{Metodologia}
+\label{sec:metodologia}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.74\textwidth]{figures/pipeline.png}
+\caption{Etapas do pré-processamento numa imagem da FVC2002 DB1 (acima) e numa da FVC2004 DB1 (abaixo): imagem bruta, desvio-padrão por bloco, máscara da ROI, imagem normalizada e entrada da rede, de $224\times224$ pixels.}
+\label{fig:pipeline}
+\end{figure*}
+
+O sistema segue o pipeline do enunciado: dado bruto, controle de qualidade, pré-processamento, localização da região de interesse (ROI), normalização, CNN, embedding, comparação, score, limiar e decisão. Todos os parâmetros ficam em \texttt{config.yaml}.
+
+\subsection{Pré-processamento}
+
+O pré-processamento segue a ordem que o enunciado define para impressões digitais: ROI, escala de cinza, normalização e redimensionamento. A Fig.~\ref{fig:pipeline} mostra cada etapa em duas imagens reais.
+
+\emph{ROI.} Calculamos o desvio-padrão de intensidade em blocos de $16\times16$ pixels, cerca de dois períodos de crista a 500~dpi, seguindo a segmentação por estatísticas de bloco descrita em~\cite{maltoni2022handbook}. O limiar de Otsu~\cite{otsu1979threshold} separa os blocos de impressão do fundo. Em seguida aplicamos fechamento e abertura morfológicos com um elemento elíptico de $33\times33$ pixels, mantemos o maior componente conexo e preenchemos os buracos.
+
+\emph{Controle de qualidade.} Uma amostra conta como falha de aquisição (FTA) quando a área da ROI é menor que 40~mm$^2$, cerca de \num{15500} pixels a 500~dpi. A regra foi fixada antes dos treinos. A FTA ficou em 0\% nas \num{1760} imagens das duas bases.
+
+\emph{Escala de cinza.} As imagens das duas bases já têm um canal de 8 bits, e a leitura as mantém assim.
+
+\emph{Normalização.} Aplicamos a normalização de Hong, Wan e Jain~\cite{hong1998enhancement}, que leva a média e a variância dentro da ROI a $M_0=128$ e $V_0=2500$ (desvio-padrão 50), com o resultado truncado em $[0,255]$. Fora da ROI, o valor é 128.
+
+\emph{Redimensionamento.} Recortamos o menor quadrado que contém a ROI, completando com 128 além da borda da imagem, e o redimensionamos para $224\times224$ pixels, o tamanho de entrada do pré-treino da rede. A rede recebe os níveis de cinza em $[-1,1]$.
+
+Não há desvio do pipeline padrão. Não usamos realce de cristas nem alinhamento.
+
+\subsection{Arquitetura}
+
+A CNN é a ConvNeXt-Tiny~\cite{liu2022convnext} da torchvision~\cite{paszke2019pytorch}, com os pesos \texttt{IMAGENET1K\_V1}, pré-treinados na ImageNet-1k~\cite{deng2009imagenet}. A primeira convolução recebe um canal, com os pesos somados sobre RGB. A camada de classificação dá lugar a Dropout de 0,2, uma camada linear para 256 dimensões e BatchNorm1d. A saída, normalizada em L2, é o embedding de 256 dimensões. Congelamos \texttt{features.0} a \texttt{features.3}, que são a entrada e os dois primeiros estágios, e treinamos os estágios 3 e 4 e a nova camada. A rede tem \num{28014432} parâmetros, \num{26782464} deles treináveis.
+
+\subsection{Treino}
+
+A perda é a ArcFace~\cite{deng2019arcface}. Durante o treino, uma cabeça recebe o embedding $\mathbf{e}$ e os pesos normalizados das 60 identidades de treino. Para a classe correta $y$, o logit é $s\cos(\theta_y+m)$, e para as demais é $s\cos\theta_j$, em que $\theta_j$ é o ângulo entre $\mathbf{e}$ e o peso da classe $j$. A perda é a entropia cruzada sobre esses logits, com $m=0{,}3$ e $s=30$. A cabeça é descartada depois do treino.
+
+Cada lote tem 16 identidades com 4 impressões cada~\cite{hermans2017triplet}. Usamos AdamW~\cite{loshchilov2019adamw} com taxa de aprendizado de $3\times10^{-4}$, decaimento de pesos de $5\times10^{-4}$, decaimento cosseno em 80 épocas e precisão mista na GPU. O aumento de dados aplica rotação de até $30^\circ$, translação de até 10\%, desfoque gaussiano (probabilidade 0,3, $\sigma$ de 0,1 a 1,5) e variação de brilho e contraste de 0,2. Guardamos o modelo da época com menor EER na validação. Os valores foram fixados antes dos treinos e não houve busca de hiperparâmetros.
+
+\subsection{Comparação e decisão}
+
+O score de um par é a similaridade de cosseno $s=\mathbf{e}_a^\top\mathbf{e}_b$ entre os dois embeddings, e o par é aceito quando $s\ge t$. O limiar $t$ é o ponto de EER nos pares de validação. Ele é fixado uma vez por seed de treino e reutilizado sem mudança no teste, na segunda base e em todos os níveis de degradação.
+
+% ---------------------------------------------------------------------------
+\section{Protocolo experimental}
+\label{sec:protocolo}
+
+\subsection{Seeds}
+
+A divisão e os pares usam a seed 42. O treino é repetido com as seeds 2026, 1999 e 1234, e todo resultado é a média e o desvio-padrão amostral das três execuções. A validação escolhe a época e o limiar nos mesmos pares, e por isso sua EER é otimista.
+
+\subsection{Métricas}
+
+Para um limiar $t$, a FMR é a fração de pares impostores com $s\ge t$ e a FNMR é a fração de pares genuínos com $s<t$~\cite{iso19795-1}. Reportamos as duas no limiar congelado. A EER de cada teste, interpolada no ponto em que FMR e FNMR se cruzam, mede só a separação das duas classes de pares e não usa o limiar congelado. Reportamos também a AUC, a curva ROC, as distribuições de scores genuínos e impostores com o limiar, a TAR a FAR de 1\% e a FTA. O custo é dado pelo número de parâmetros, pelo tamanho dos pesos e pelo tempo médio de inferência. Rank-1 e CMC não se aplicam, porque o sistema não faz identificação 1:N. Testes unitários conferem EER e AUC contra o scikit-learn.
+
+\subsection{Experimentos}
+
+\emph{A.} O sistema nos 30 dedos de teste da FVC2002 DB1.
+
+\emph{B.} O enunciado pede as CNNs de duas equipes nas duas bases, nos mesmos pares. Este artigo traz a linha da nossa CNN nas duas bases. Os arquivos \texttt{scores.csv} seguem o formato do enunciado (\texttt{amostra\_1}, \texttt{amostra\_2}, \texttt{tipo}, \texttt{score}) e os pares estão em \texttt{protocols/}, de modo que a linha da outra equipe entra na mesma tabela sem recalcular nada do nosso lado.
+
+\emph{C.} O mesmo modelo e o mesmo limiar, sem novo ajuste, na FVC2004 DB1: nos 30 dedos de teste e no protocolo oficial do conjunto A.
+
+\emph{D.} Nas imagens brutas dos 30 dedos de teste da FVC2002 DB1, degradamos as duas imagens de cada par e repetimos o pipeline inteiro com o modelo e o limiar congelados. O desfoque gaussiano usa $\sigma$ de 0, 1, 2 e 3 pixels, e a rotação usa $0^\circ$, $10^\circ$, $20^\circ$ e $30^\circ$, com sinal sorteado por imagem com seed fixa. São os quatro níveis do enunciado: original, baixo, médio e alto. Neste experimento mantemos os pares com amostra em FTA e reportamos a FTA de cada nível.
+
+\emph{Ablação.} A mesma rede, com as mesmas seeds, épocas e protocolos, treinada e avaliada sem a normalização de Hong. As demais etapas não mudam.
+
+\subsection{Hardware e software}
+
+Os treinos e as avaliações rodaram numa máquina do Google Colab com uma GPU NVIDIA L4 de 23~GB, CPU Intel Xeon de 2,20~GHz e 52~GB de RAM, com Python 3.13, PyTorch 2.14.1 (CUDA 13.0) e torchvision 0.29.1. Um treino de 80 épocas leva 2,6 minutos. O tempo de inferência é medido só na rede, com lote de uma imagem de $224\times224$, 20 passagens de aquecimento e 100 repetições sincronizadas com a GPU.
+
+% ---------------------------------------------------------------------------
+\section{Resultados}
+\label{sec:resultados}
+
+\begin{table*}[t]
+\centering
+\caption{Tabela padrão de resultados. Média $\pm$ desvio-padrão amostral de três seeds de treino. FMR e FNMR no limiar congelado na validação. Taxas em \%.}
+\label{tab:padrao}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & FVC2002 DB1, teste & FVC2004 DB1, teste & FVC2004 DB1-A, oficial \\
+ & (Exp.~A) & (Exp.~C) & (Exp.~C) \\
+\midrule
+Modalidade & \multicolumn{3}{c}{impressão digital, verificação 1:1} \\
+CNN & \multicolumn{3}{c}{ConvNeXt-Tiny (torchvision)} \\
+Pré-treinamento & \multicolumn{3}{c}{ImageNet-1k (\texttt{IMAGENET1K\_V1}); ajuste fino com ArcFace em 60 dedos da FVC2002 DB1} \\
+Nº de parâmetros & \multicolumn{3}{c}{\num{28014432} (\num{26782464} treináveis)} \\
+Dimensão do embedding & \multicolumn{3}{c}{256, norma L2} \\
+Matching & \multicolumn{3}{c}{similaridade de cosseno} \\
+Threshold & \multicolumn{3}{c}{$0{,}308\pm0{,}009$ (EER na validação da FVC2002 DB1)} \\
+\midrule
+Pares genuínos / impostores & 840 / \num{27840} & 840 / \num{27840} & \num{2800} / \num{4950} \\
+EER & $9{,}75\pm0{,}63$ & $14{,}18\pm1{,}49$ & $14{,}49\pm0{,}97$ \\
+AUC & $0{,}9656\pm0{,}0038$ & $0{,}9281\pm0{,}0094$ & $0{,}9230\pm0{,}0083$ \\
+FMR & $10{,}45\pm1{,}95$ & $13{,}61\pm1{,}14$ & $11{,}91\pm3{,}07$ \\
+FNMR & $9{,}17\pm2{,}63$ & $14{,}68\pm2{,}54$ & $18{,}18\pm2{,}26$ \\
+TAR@FAR=1\% & $55{,}32\pm2{,}94$ & $25{,}56\pm1{,}25$ & $22{,}88\pm8{,}12$ \\
+FTA & 0,00 & 0,00 & 0,00 \\
+\midrule
+Tempo médio de inferência & \multicolumn{3}{c}{6,48~ms por imagem (lote 1, NVIDIA L4)} \\
+Tamanho do modelo & \multicolumn{3}{c}{112,1~MB} \\
+Hardware & \multicolumn{3}{c}{GPU NVIDIA L4 (Google Colab), 52~GB de RAM} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Os valores desta seção são média $\pm$ desvio-padrão amostral sobre as seeds 2026, 1999 e 1234. O arquivo \texttt{results/summary.md} traz as mesmas tabelas, e cada avaliação tem seu \texttt{scores.csv} e seu \texttt{metrics.json} em \texttt{results/}.
+
+\subsection{Experimento A: base principal}
+
+Nos 30 dedos de teste da FVC2002 DB1, a EER é de $9{,}75\pm0{,}63$\% e a AUC de $0{,}9656\pm0{,}0038$ (Tabela~\ref{tab:padrao}). O limiar fixado na validação é $0{,}308\pm0{,}009$. Nele, a FMR é de $10{,}45\pm1{,}95$\% e a FNMR de $9{,}17\pm2{,}63$\%. A TAR a FAR de 1\% é de $55{,}32\pm2{,}94$\%. Nenhuma amostra falhou na aquisição.
+
+Na validação, a EER é de $6{,}02\pm0{,}37$\%. A diferença de 3,7 pontos para o teste tem duas causas conhecidas: a validação escolhe a época e o limiar nos mesmos pares, e 20 dedos dão uma estimativa ruidosa. A Fig.~\ref{fig:dist} mostra as distribuições de scores com o limiar congelado, e a Fig.~\ref{fig:roc} as curvas ROC.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.72\textwidth]{figures/distributions.pdf}
+\caption{Scores genuínos e impostores (seed 2026) nos 30 dedos de teste de cada base, com o limiar congelado na validação.}
+\label{fig:dist}
+\end{figure*}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.78\columnwidth]{figures/roc.pdf}
+\caption{Curvas ROC nos 30 dedos de teste das duas bases, com e sem a normalização de intensidade, seed 2026. A linha pontilhada marca FMR de 1\%.}
+\label{fig:roc}
+\end{figure}
+
+\subsection{Experimentos B e C: as duas bases}
+
+A Tabela~\ref{tab:padrao} é a linha da nossa CNN no Experimento~B: as mesmas métricas nas duas bases, calculadas nos pares de \texttt{protocols/}.
+
+No Experimento~C, o modelo e o limiar da FVC2002 DB1 vão para a FVC2004 DB1 sem novo ajuste. A EER sobe de 9,75\% para $14{,}18\pm1{,}49$\% nos 30 dedos de teste e para $14{,}49\pm0{,}97$\% no protocolo oficial do conjunto A, e a AUC cai de 0,966 para 0,928 e 0,923. No limiar congelado, a FMR vai de 10,45\% para 13,61\% e 11,91\%, e a FNMR de 9,17\% para 14,68\% e 18,18\%. A queda mais forte é a da TAR a FAR de 1\%, de 55,3\% para 25,6\% e 22,9\%. A Fig.~\ref{fig:dist} mostra o efeito: na segunda base os scores genuínos se espalham para a esquerda e se misturam mais com os impostores.
+
+\subsection{Experimento D: robustez}
+
+A Tabela~\ref{tab:robustez} e a Fig.~\ref{fig:robustez} trazem as taxas por nível. O desfoque com $\sigma=1$ pixel não piora a EER ($9{,}34\pm0{,}84$\%). Esse nível está dentro da faixa do aumento de dados do treino. Com $\sigma=2$ a EER vai a $11{,}39\pm0{,}96$\%, e com $\sigma=3$ chega a $21{,}19\pm0{,}21$\%. Neste nível as duas taxas sobem no limiar congelado, a FMR para $24{,}55\pm5{,}42$\% e a FNMR para $18{,}53\pm3{,}70$\%, e 3 das 240 imagens (1,25\%) passam a contar como FTA.
+
+A rotação leva a EER a $10{,}33\pm0{,}57$\%, $11{,}43\pm1{,}17$\% e $12{,}55\pm1{,}35$\% a $10^\circ$, $20^\circ$ e $30^\circ$. O erro que cresce é o de rejeição: a FNMR sobe de 9,17\% para $17{,}06\pm3{,}26$\%, e a FMR fica entre 9,2\% e 10,5\%.
+
+\begin{table}[t]
+\centering
+\caption{Experimento D nos 30 dedos de teste da FVC2002 DB1, com modelo e limiar congelados. Média $\pm$ desvio-padrão de três seeds, taxas em \%.}
+\label{tab:robustez}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Nível & & EER & FMR & FNMR & FTA \\
+\midrule
+Original & & $9{,}75\pm0{,}63$ & $10{,}45\pm1{,}95$ & $9{,}17\pm2{,}63$ & 0,00 \\
+\midrule
+Desfoque & $\sigma=1$ & $9{,}34\pm0{,}84$ & $11{,}05\pm1{,}98$ & $7{,}98\pm3{,}00$ & 0,00 \\
+ & $\sigma=2$ & $11{,}39\pm0{,}96$ & $13{,}30\pm2{,}01$ & $10{,}44\pm2{,}83$ & 0,00 \\
+ & $\sigma=3$ & $21{,}19\pm0{,}21$ & $24{,}55\pm5{,}42$ & $18{,}53\pm3{,}70$ & 1,25 \\
+\midrule
+Rotação & $10^\circ$ & $10{,}33\pm0{,}57$ & $10{,}14\pm2{,}06$ & $10{,}44\pm1{,}67$ & 0,00 \\
+ & $20^\circ$ & $11{,}43\pm1{,}17$ & $9{,}66\pm2{,}17$ & $13{,}10\pm2{,}15$ & 0,00 \\
+ & $30^\circ$ & $12{,}55\pm1{,}35$ & $9{,}19\pm1{,}69$ & $17{,}06\pm3{,}26$ & 0,00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.74\columnwidth]{figures/robustness.pdf}
+\caption{Experimento D: taxas de erro por nível de desfoque (acima) e de rotação (abaixo), média $\pm$ desvio-padrão de três seeds.}
+\label{fig:robustez}
+\end{figure}
+
+\subsection{Ablação: com e sem normalização}
+
+A Tabela~\ref{tab:ablacao} compara o sistema com e sem a normalização de Hong. As diferenças de EER são de 0,14, 0,52 e 0,29 ponto nas três avaliações, com sinais diferentes, e todas ficam abaixo do desvio-padrão entre seeds de pelo menos uma das versões. A normalização não muda o desempenho de forma mensurável com três seeds. O limiar muda, de 0,308 para $0{,}268\pm0{,}020$, porque cada versão tem sua própria distribuição de scores.
+
+\begin{table}[t]
+\centering
+\caption{Ablação: ConvNeXt-Tiny com e sem a normalização de intensidade. Média $\pm$ desvio-padrão de três seeds, taxas em \%, FMR e FNMR no limiar congelado de cada versão.}
+\label{tab:ablacao}
+\footnotesize
+\setlength{\tabcolsep}{1.6pt}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+Avaliação & Normalização & EER & FMR & FNMR \\
+\midrule
+FVC2002 DB1, & com & $9{,}75\pm0{,}63$ & $10{,}45\pm1{,}95$ & $9{,}17\pm2{,}63$ \\
+teste & sem & $9{,}61\pm0{,}25$ & $10{,}24\pm1{,}28$ & $8{,}85\pm1{,}32$ \\
+\midrule
+FVC2004 DB1, & com & $14{,}18\pm1{,}49$ & $13{,}61\pm1{,}14$ & $14{,}68\pm2{,}54$ \\
+teste & sem & $13{,}66\pm0{,}50$ & $11{,}74\pm1{,}76$ & $16{,}63\pm1{,}69$ \\
+\midrule
+FVC2004 DB1-A, & com & $14{,}49\pm0{,}97$ & $11{,}91\pm3{,}07$ & $18{,}18\pm2{,}26$ \\
+oficial & sem & $14{,}78\pm0{,}50$ & $12{,}34\pm1{,}39$ & $18{,}37\pm1{,}94$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Custo computacional}
+
+A ConvNeXt-Tiny tem 28,0 milhões de parâmetros e 112,1~MB de pesos. A inferência leva em média 6,48~ms por imagem na NVIDIA L4, com lote de uma imagem, e um treino leva 2,6 minutos. O template tem 256 valores de 32 bits, ou 1~kB por dedo, e a comparação de dois templates é um produto interno de 256 termos.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.68\textwidth]{figures/errors_fvc2002_db1.png}\\[2pt]
+\includegraphics[width=0.68\textwidth]{figures/errors_fvc2004_db1.png}
+\caption{Três falsos matches (linha de cima de cada painel) e três falsos não-matches (linha de baixo) na FVC2002 DB1 e na FVC2004 DB1, seed 2026, limiar 0,316. Cada par mostra as duas amostras como a rede as recebe, com o score.}
+\label{fig:erros}
+\end{figure*}
+
+% ---------------------------------------------------------------------------
+\section{Análise e discussão}
+\label{sec:discussao}
+
+\subsection{Transferência entre bases}
+
+O sistema perde 4,4 pontos de EER ao passar para os 30 dedos de teste da FVC2004 DB1 e 4,7 no protocolo oficial. O limiar congelado continua num ponto razoável da curva: na segunda base a FMR (13,6\%) e a FNMR (14,7\%) nos 30 dedos de teste ficam próximas uma da outra. No protocolo oficial o erro pende para a rejeição, com FNMR de 18,2\%. O que piora é a separação dos scores, e não a posição do limiar.
+
+Há duas diferenças conhecidas entre as bases. As imagens brutas da FVC2004 DB1 são menos nítidas: a variância do Laplaciano é 635 em média, contra \num{1643} na FVC2002 DB1. E a coleta da FVC2004 pediu distorção, pressão e umidade variadas~\cite{maio2004fvc2004}. Não isolamos o efeito de cada uma. A rede viu um único sensor no treino, e nada no pipeline compensa a troca.
+
+\subsection{Limiar}
+
+O limiar vem de 20 dedos. Entre seeds ele varia pouco (desvio de 0,009), mas a FMR e a FNMR medidas nele variam de 2 a 3 pontos, mais que a EER na base principal (0,6 ponto). Quem for operar o sistema num ponto fixo deve esperar essa variação. A TAR a FAR de 1\% mostra que o sistema está longe de um ponto de operação de segurança: com 1\% de falsas aceitações, ele rejeita 45\% dos pares genuínos na base principal e cerca de 75\% na segunda.
+
+\subsection{Robustez}
+
+O desfoque leve não afeta o sistema, e o forte afeta as duas taxas ao mesmo tempo. Com $\sigma=3$ a FMR passa de 10\% para 25\%. Esse é um erro de segurança, e o controle de qualidade quase não o percebe: ele mede só a área da ROI, que o desfoque pouco altera, e marcou 3 das 240 imagens. Um critério de nitidez, como um limiar na variância do Laplaciano fixado na validação, é a correção mais direta.
+
+A rotação afeta só a rejeição. O treino usou rotações de até $30^\circ$, mas no teste cada imagem recebe um sinal sorteado, e a rotação relativa de um par chega a $60^\circ$. O pipeline não alinha as impressões.
+
+\subsection{Normalização e custo}
+
+A ablação mostra que a normalização de Hong não muda a EER de forma mensurável. Duas razões plausíveis: as imagens de cada base vêm de um único sensor óptico, com contraste já parecido entre capturas, e o aumento de dados varia brilho e contraste durante o treino, o que dá à rede parte da mesma invariância. A normalização custa pouco, e o sistema a mantém porque o pipeline padrão a prevê.
+
+O enunciado pergunta se os ganhos em EER justificam o custo. Dentro deste artigo há uma só CNN, e a comparação de custo entre arquiteturas depende da linha da outra equipe no Experimento~B. O que podemos afirmar é o custo absoluto: 6,5~ms por imagem numa GPU e 112~MB de pesos compram uma EER de 9,75\% na base principal. Os modelos de tamanho fixo com taxas muito menores nas bases FVC usam de centenas de milhares a milhões de imagens de treino~\cite{engelsma2021deepprint,grosz2024afrnet}, e aqui há 480.
+
+\subsection{Análise de erros}
+
+A Fig.~\ref{fig:erros} mostra, para a seed 2026 e o limiar 0,316, os três falsos matches de maior score e os três falsos não-matches de menor score de cada base. A análise cobre só esses casos extremos.
+
+\emph{Falsos matches, FVC2002 DB1.} O par 37\_7 e 42\_8 (score 0,865) junta duas capturas de área pequena, 121 e 95~mm$^2$, com cristas fragmentadas e a mesma inclinação. Os pares 54\_6 com 66\_2 (0,841) e 54\_7 com 66\_2 (0,828) juntam dois dedos com verticilo, com o núcleo no centro da imagem. Hipótese: o embedding codifica a classe do padrão e o fluxo global das cristas, e pouco do detalhe local que separa dedos da mesma classe.
+
+\emph{Falsos não-matches, FVC2002 DB1.} No par 78\_1 e 78\_5 (score $-0{,}087$), a segunda captura tem 88~mm$^2$, contra 232~mm$^2$ da primeira, e mostra só a ponta do dedo. O redimensionamento do quadrado da ROI para $224\times224$ amplia a captura pequena, e as cristas das duas imagens chegam à rede em escalas diferentes. O par 78\_1 e 78\_4 ($-0{,}054$) tem uma captura inclinada e seca, e o par 15\_3 e 15\_5 ($-0{,}020$) mostra regiões diferentes do dedo, também em escalas diferentes. Hipótese: como a escala da entrada depende da área da ROI, capturas parciais do mesmo dedo ficam sem região comum na mesma escala.
+
+\emph{Falsos matches, FVC2004 DB1.} Os três pares (scores de 0,849 a 0,870) reúnem capturas escuras e borradas, com nitidez de 447 a 887, e a impressão 35\_8 aparece em dois deles. Hipótese: em capturas úmidas ou com muita pressão o detalhe das cristas some, e o que resta é a forma da ROI e o fluxo global, parecidos entre dedos.
+
+\emph{Falsos não-matches, FVC2004 DB1.} Os três pares envolvem a impressão 54\_3, que mostra a parte de baixo do dedo, sem o núcleo, com um recorte na máscara. As outras capturas do dedo mostram o núcleo, e uma delas, 54\_8, tem nitidez de 273 e uma máscara irregular. Hipótese: a segmentação falha em capturas de pouco contraste, e pares com pouca área em comum não têm como chegar a um score alto sem alinhamento.
+
+\subsection{Limitações}
+
+O treino usa 60 dedos de um único sensor. O limiar e a época vêm de 20 dedos, e o teste tem 30, de modo que as taxas têm incerteza amostral alta, que o desvio entre três seeds não mede. Os hiperparâmetros vieram de experimentos anteriores do autor, com outro pré-processamento, e não foram ajustados para este pipeline. O Experimento~B traz só a nossa CNN. O desfoque e a rotação atingem as duas imagens do par e foram medidos só na base principal. A análise de erros olha seis casos por base, e as hipóteses não foram testadas.
+
+% ---------------------------------------------------------------------------
+\section{Conclusão}
+\label{sec:conclusao}
+
+Uma ConvNeXt-Tiny pré-treinada na ImageNet-1k e ajustada com ArcFace em 480 imagens de 60 dedos da FVC2002 DB1 tem EER de $9{,}75\pm0{,}63$\% em 30 dedos de teste da mesma base, com FMR de 10,5\% e FNMR de 9,2\% no limiar fixado na validação. Levado sem ajuste à FVC2004 DB1, o mesmo sistema tem EER de 14,2\% nos 30 dedos de teste e de 14,5\% no protocolo oficial, e a rejeição de pares genuínos é o erro que mais cresce. Um desfoque forte eleva a aceitação de impostores a 25\% sem que o controle de qualidade por área perceba, e a rotação de $30^\circ$ quase dobra a FNMR. A normalização de intensidade não muda o resultado de forma mensurável.
+
+A análise de erros aponta dois limites do pipeline padrão: a escala da entrada depende da área da ROI, e não há alinhamento entre as duas impressões de um par. Os próximos passos são um critério de nitidez no controle de qualidade e a comparação com a CNN da outra equipe nos mesmos pares. Código, protocolos e scores estão em \repourl, versão \texttt{\repoversion}.
+
+\bibliographystyle{IEEEtran}
+\bibliography{IEEEabrv,refs}
+
+\end{document}

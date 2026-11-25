@@ -1,0 +1,81 @@
+# Single source of truth for every script. Override any key with --set key.sub=value.
+seed: 42                            # protocols and pairs (assignment section 12)
+seeds: [2026, 1999, 1234]           # training seeds (assignment section 17)
+
+datasets:
+  # Laid out as on the FVC DVDs: <root>/<subdir>/<finger>_<impression>.tif. Sets A (fingers 1-100) and B (101-110).
+  fvc2002_db1:                      # main base of Dupla 3
+    root: data/raw/FVC2002/Dbs
+    subdirs: [Db1_a, Db1_b]
+    dpi: 500
+    sensor: "Identix TouchView II (optical)"
+  fvc2004_db1:                      # second base, never trained on
+    root: data/raw/FVC2004/Dbs
+    subdirs: [DB1_A, DB1_B]
+    dpi: 500
+    sensor: "CrossMatch V300 (optical)"
+
+main_dataset: fvc2002_db1
+second_dataset: fvc2004_db1
+
+protocol:
+  # Identity-disjoint split of the 110 fingers of each base. Fingers never cross splits.
+  split: {train: 60, validation: 20, test: 30}
+  # all = every cross-identity pair; fvc = official rule (impression 1 against impression 1).
+  impostor_mode: all
+  official_impostor_mode: fvc
+
+preprocess:
+  # Assignment section 7: ROI -> grayscale -> normalisation -> resizing.
+  block_size: 16                    # px, about two ridge periods at 500 dpi
+  fg_std_threshold: null            # null -> Otsu on the block-std map
+  min_foreground_mm2: 40            # quality control: a smaller ROI is a Failure To Acquire
+  normalization: hong               # hong | none (ablation arm)
+  hong_mean: 128.0
+  hong_var: 2500.0
+  background_fill: 128              # outside the ROI
+  output_size: 224                  # the square around the ROI is resized to this, the network input
+  output_dir: data/processed
+
+model:
+  backbone: convnext_tiny
+  weights: IMAGENET1K_V1            # torchvision weights, pretrained on ImageNet-1k
+  in_channels: 1                    # the pretrained first convolution is summed over RGB
+  embedding_dim: 256
+  arcface: {margin: 0.3, scale: 30.0}
+
+train:
+  epochs: 80
+  batch_identities: 16              # P identities per batch
+  samples_per_identity: 4           # K impressions per identity
+  lr: 3.0e-4
+  weight_decay: 5.0e-4
+  freeze_until: features.3          # stem and the first two stages stay frozen
+  amp: true
+  num_workers: 4
+  device: auto
+  deterministic: true
+  augment:
+    rotation_deg: 30
+    translate: 0.10
+    blur_p: 0.3
+    blur_sigma: [0.1, 1.5]
+    brightness: 0.2
+    contrast: 0.2
+  runs_dir: runs
+
+eval:
+  threshold_rule: eer               # threshold = EER point of the validation pairs, then frozen
+  fmr_target: 0.01
+  batch_size: 32
+  timing_repeats: 100
+  timing_warmup: 20
+  results_dir: results
+
+robustness:
+  perturbation: blur                # blur | rotation
+  apply_to: both
+  drop_fta: false
+  levels:
+    blur: {original: 0.0, low: 1.0, medium: 2.0, high: 3.0}        # Gaussian sigma in px
+    rotation: {original: 0, low: 10, medium: 20, high: 30}          # degrees, random sign, fixed seed

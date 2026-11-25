@@ -1,0 +1,276 @@
+%% Compilar: latexmk -pdf apresentacao.tex  (pdflatex + biber).
+\documentclass[
+  aspectratio = 169,
+  10pt,
+  t,
+  onlytextwidth,
+  compress,
+  handout,
+  xcolor = table,
+  english,
+  brazilian,
+]{beamer}
+
+\usepackage[
+  ABNTCit  = NSB,
+  DocLic   = None,
+  URLIcon  = On,
+  DOIIcon  = On,
+]{utfpr-slides}
+
+\SlidesBackGround{utfpr-b-bg-16-x-9}
+\SlidesLogo{utfpr-pg-d}
+
+\title[Impressão digital 1:1 com ConvNeXt-Tiny]{%
+  Verificação 1:1 de impressões digitais\\com embeddings de uma ConvNeXt-Tiny%
+}
+\subtitle{Base principal FVC2002 DB1, segunda base FVC2004 DB1}
+\subject{Projeto Final: Biometria (UTFPR Ponta Grossa)}
+\author[L.~R.~de Carvalho]{%
+  Lucas Ribeiro de Carvalho%
+  \AuthorInfo{%
+    ORCID = {0009-0005-2339-0093},%
+    Affil = {UTFPR},%
+    Inst  = {1},%
+  }%
+  \Inst{\faUserTalk}%
+}
+\institute[UTFPR]{%
+  \Affil[1]{\UTFPRName, Ponta Grossa, Paraná, Brasil}%
+  \and\InfoList[\tiny]{\faOrcid}{\MakeInfoList{ORCID}}%
+}
+\DateOrInfo[Biometria, \YearNum]{Disciplina de Biometria, Dupla 3, \YearNum}
+\titlegraphic{%
+  \hfill%
+  \Logo{public-education-l}\hspace*{2mm}%
+  \Logo{utfpr-pg-l}%
+}
+\Campus{Campus Ponta Grossa}
+\Department[Biometria]{Disciplina de Biometria}
+
+\addbibresource{referencias.bib}
+
+\newcommand{\fig}[2]{\includegraphics[#1]{../artigo/figures/#2}}
+
+\begin{document}
+
+\maketitle
+
+\section{Problema}
+
+\begin{frame}{Problema e objetivo}
+\begin{columns}[T]
+\column{0.55\textwidth}
+\begin{itemize}
+\item Verificação 1:1: duas impressões, mesmo dedo ou não?
+\item A CNN gera um \alert{embedding de 256 dimensões} por imagem.
+\item O score é a similaridade de cosseno, comparada a um limiar.
+\item Objetivo do enunciado: experimento correto, reprodutível e comparável.
+\end{itemize}
+\column{0.42\textwidth}
+\begin{block}{Quatro perguntas}
+\begin{itemize}
+\item A: desempenho na base principal.
+\item B: a CNN nas duas bases, mesmos pares.
+\item C: segunda base, sem novo ajuste.
+\item D: desfoque e rotação.
+\end{itemize}
+\end{block}
+\end{columns}
+\end{frame}
+
+\section{Metodologia}
+
+\begin{frame}{Bases e protocolo}
+\begin{columns}[T]
+\column{0.55\textwidth}
+\footnotesize
+\begin{tabular}{@{}llc@{}}
+\toprule
+Papel & Base & Dedos \\
+\midrule
+Treino & FVC2002 DB1~\cite{maio2002fvc2002} (A+B) & 60 \\
+Validação & FVC2002 DB1 & 20 \\
+Teste, exp. A & FVC2002 DB1 & 30 \\
+Teste, exp. C & FVC2004 DB1~\cite{maio2004fvc2004}, nunca treinada & 30 \\
+Oficial, exp. C & FVC2004 DB1-A & 100 \\
+\bottomrule
+\end{tabular}
+\par\medskip
+8 impressões por dedo, 880 imagens por base. Sensores ópticos de 500~dpi: Identix TouchView~II (2002) e CrossMatch V300 (2004).\\
+Teste de 30 dedos: 840 pares genuínos e 27\,840 impostores.\\
+Protocolo oficial: 2\,800 genuínos e 4\,950 impostores.
+\column{0.42\textwidth}
+\begin{itemize}
+\item Divisão por identidade com seed 42: nenhum dedo em duas partes.
+\item Época e limiar saem só da validação. O \alert{limiar fica congelado}.
+\item Treinos com as seeds 2026, 1999 e 1234: média e desvio-padrão.
+\item O protocolo oficial da FVC2002 DB1 reserva só 10 dedos para ajuste, por isso ele entra só na segunda base.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Pipeline com exemplos reais}
+\centering
+\fig{width=0.8\textwidth}{pipeline.png}
+\par\medskip
+\footnotesize
+bruto $\rightarrow$ ROI por blocos $\rightarrow$ QC (FTA se ROI $<40$~mm$^2$) $\rightarrow$ escala de cinza $\rightarrow$ normalização~\cite{hong1998enhancement} $\rightarrow$ redimensionamento para $224\times224$ $\rightarrow$ CNN $\rightarrow$ embedding $\rightarrow$ cosseno $\rightarrow$ limiar $\rightarrow$ decisão
+\end{frame}
+
+\begin{frame}{CNN, embedding e matching}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{block}{ConvNeXt-Tiny~\cite{liu2022convnext}}
+\begin{itemize}
+\item Pesos da torchvision, \texttt{IMAGENET1K\_V1}, pré-treino na ImageNet-1k.
+\item Entrada de 1 canal, $224\times224$.
+\item \texttt{features.0} a \texttt{3} congeladas; estágios 3 e 4 treinados.
+\item 28,0~M parâmetros, 26,8~M treináveis.
+\end{itemize}
+\end{block}
+\column{0.46\textwidth}
+\begin{itemize}
+\item Cabeça: Linear para 256 + BatchNorm, norma L2.
+\item Perda ArcFace~\cite{deng2019arcface}, $m=0{,}3$, $s=30$.
+\item Lotes de 16 dedos $\times$ 4 impressões; AdamW, taxa $3\times10^{-4}$, 80 épocas.
+\item Fica a época de menor EER na validação.
+\item Score: $s=\mathbf{e}_a^\top\mathbf{e}_b$; aceita se $s\ge t$.
+\item $t$ = ponto de EER na validação.
+\item Hardware: Google Colab, GPU NVIDIA L4, PyTorch 2.14; um treino leva 2,6~min.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\section{Resultados}
+
+\begin{frame}{Resultados: experimentos A, B e C}
+\begin{columns}[T]
+\column{0.58\textwidth}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & FVC2002 DB1 & FVC2004 DB1 & 2004 oficial \\
+\midrule
+\alert{EER (\%)} & \alert{$9{,}75\pm0{,}63$} & \alert{$14{,}18\pm1{,}49$} & \alert{$14{,}49\pm0{,}97$} \\
+AUC & $0{,}966\pm0{,}004$ & $0{,}928\pm0{,}009$ & $0{,}923\pm0{,}008$ \\
+FMR (\%) & $10{,}45\pm1{,}95$ & $13{,}61\pm1{,}14$ & $11{,}91\pm3{,}07$ \\
+FNMR (\%) & $9{,}17\pm2{,}63$ & $14{,}68\pm2{,}54$ & $18{,}18\pm2{,}26$ \\
+TAR@FAR=1\% & $55{,}3\pm2{,}9$ & $25{,}6\pm1{,}3$ & $22{,}9\pm8{,}1$ \\
+FTA (\%) & 0 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\par\medskip
+\footnotesize
+Limiar congelado: $0{,}308\pm0{,}009$. EER na validação: 6,02\%.\\
+Da primeira para a segunda base, a FMR vai de 10,5\% a 13,6\% e a FNMR de 9,2\% a 14,7\%.\\
+Experimento B parcial: falta a linha da CNN da outra dupla.\\
+Custo: 6,48~ms por imagem (NVIDIA L4, lote 1), 112,1~MB de pesos.
+\column{0.38\textwidth}
+\centering
+\fig{width=\linewidth}{roc.pdf}\\[-2pt]
+{\scriptsize ROC da seed 2026; as curvas sem normalização são a ablação}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Distribuição dos scores e limiar}
+\centering
+\fig{width=0.8\textwidth}{distributions.pdf}
+\par\medskip
+\begin{itemize}
+\item O mesmo limiar vale para as duas bases (0,316 na seed da figura).
+\item Na FVC2004 DB1 os scores genuínos se espalham para a esquerda: a FNMR vai de 9,2\% para 14,7\%.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Experimento D e ablação}
+\begin{columns}[T]
+\column{0.4\textwidth}
+\centering
+\fig{height=0.72\textheight}{robustness.pdf}
+\column{0.56\textwidth}
+\begin{itemize}
+\item Desfoque com $\sigma=1$: EER de 9,3\%, sem piora.
+\item Desfoque com $\sigma=3$: EER de 21,2\%, \alert{FMR de 24,5\%} e FNMR de 18,5\%.
+\item O QC por área marcou só 3 das 240 imagens com $\sigma=3$.
+\item Rotação de $30^\circ$: EER de 12,5\%; só a FNMR sobe, de 9,2\% para 17,1\%.
+\end{itemize}
+\begin{block}{Ablação: sem a normalização}
+EER de 9,61\%, 13,66\% e 14,78\% nas três avaliações, contra 9,75\%, 14,18\% e 14,49\%. As diferenças ficam dentro da variação entre seeds.
+\end{block}
+\end{columns}
+\end{frame}
+
+\section{Discussão}
+
+\begin{frame}{Análise de erros: FVC2002 DB1}
+\centering
+\fig{width=0.66\textwidth}{errors_fvc2002_db1.png}\\[-2pt]
+{\scriptsize Falsos matches (acima) e falsos não-matches (abaixo), limiar 0,316}
+\par\smallskip
+\footnotesize
+\begin{itemize}
+\item Falsos matches com score de 0,83 a 0,87: dois verticilos com o núcleo no centro (dedos 54 e 66) e duas capturas pequenas com a mesma inclinação.
+\item Hipótese: o embedding guarda a classe do padrão e o fluxo global.
+\item Falsos não-matches: captura parcial (78\_5, 88~mm$^2$) ampliada pelo redimensionamento. As cristas chegam em escalas diferentes.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Análise de erros: FVC2004 DB1}
+\centering
+\fig{width=0.66\textwidth}{errors_fvc2004_db1.png}\\[-2pt]
+{\scriptsize Falsos matches (acima) e falsos não-matches (abaixo), limiar 0,316}
+\par\smallskip
+\footnotesize
+\begin{itemize}
+\item Falsos matches com score de 0,85 a 0,87: capturas escuras e borradas, em que o detalhe das cristas some.
+\item Os três falsos não-matches envolvem 54\_3, que mostra a parte de baixo do dedo, sem o núcleo.
+\item Hipótese: sem alinhamento, pares com pouca área em comum não chegam a um score alto.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Discussão e limitações}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{itemize}
+\item A troca de base custa 4,4 a 4,7 pontos de EER. O limiar continua num ponto razoável; o que piora é a separação dos scores.
+\item A FVC2004 DB1 é menos nítida e foi coletada com distorção, pressão e umidade variadas.
+\item Com FAR de 1\%, o sistema rejeita 45\% dos pares genuínos na base principal.
+\end{itemize}
+\column{0.46\textwidth}
+\begin{block}{Limitações}
+\begin{itemize}
+\item 60 dedos de treino, de um sensor.
+\item Limiar de 20 dedos, teste de 30.
+\item Experimento B só com a nossa CNN.
+\item Hipóteses de erro não testadas.
+\end{itemize}
+\end{block}
+\end{columns}
+\end{frame}
+
+\section{Conclusões}
+
+\begin{frame}{Conclusões}
+\begin{itemize}
+\item FVC2002 DB1: EER de $9{,}75\pm0{,}63$\%, FMR de 10,5\% e FNMR de 9,2\% no limiar da validação.
+\item FVC2004 DB1, sem novo ajuste: EER de 14,2\% e 14,5\%; a rejeição é o erro que mais cresce.
+\item Desfoque forte leva a FMR a 25\% e o QC por área não percebe.
+\item A normalização de intensidade não muda o resultado de forma mensurável.
+\end{itemize}
+\vfill
+\begin{exampleblock}{Próximos passos}
+\small Critério de nitidez no controle de qualidade e comparação com a CNN da outra dupla nos mesmos pares.
+\end{exampleblock}
+\par\smallskip
+{\footnotesize Código, protocolos e scores: \url{https://github.com/lucthesloth/biometria26.2}, tag \texttt{final-v1.0}.}
+\end{frame}
+
+\section<presentation>{\refname}
+
+\begin{frame}<presentation>[allowframebreaks]{\refname}
+\printbibliography[heading = none]
+\end{frame}
+
+\end{document}
