@@ -1,0 +1,7 @@
+{
+  "rule": "eer",
+  "threshold": 2.0874657822245495,
+  "validation_eer": 0.014473684210526305,
+  "weight_cnn": 0.7,
+  "source": "results/fvc2002_db1_val/convnext_tiny_gabor/seed1234"
+}

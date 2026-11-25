@@ -1,0 +1,22 @@
+{
+  "n_genuine": 2800,
+  "n_impostor": 4950,
+  "threshold": 0.3034102132445888,
+  "fmr": 0.022424242424242423,
+  "fnmr": 0.1417857142857143,
+  "eer": 0.06464646464646462,
+  "eer_threshold": 0.20275158728613996,
+  "auc": 0.9786832611832612,
+  "d_prime": 3.0991668701171875,
+  "fmr100_fnmr": 0.19678571428571429,
+  "fmr1000_fnmr": 0.5132142857142857,
+  "tar_at_far_1pct": 0.8032142857142857,
+  "tar_at_far_0_1pct": 0.48678571428571427,
+  "fta": 0.0,
+  "far": 0.022424242424242423,
+  "frr": 0.1417857142857143,
+  "pairs_dropped": 0.0,
+  "fta_note": "fta is the per-sample failure-to-acquire rate from qc.csv over the samples in these pairs; pairs_dropped is the fraction of pairs removed because one of their samples failed",
+  "evaluated_on": "protocols/fvc2004_db1_official/test_pairs.csv",
+  "threshold_source": "results/otimizacao/fvc2002_db1_val/wide/seed2026/threshold.json"
+}

@@ -1,0 +1,349 @@
+%% Compilar: latexmk -pdf apresentacao.tex  (pdflatex + biber).
+\documentclass[
+  aspectratio = 169,
+  10pt,
+  t,
+  onlytextwidth,
+  compress,
+  handout,
+  xcolor = table,
+  english,
+  brazilian,
+]{beamer}
+
+\usepackage[
+  ABNTCit  = NSB,
+  DocLic   = None,
+  URLIcon  = On,
+  DOIIcon  = On,
+]{utfpr-slides}
+
+\SlidesBackGround{utfpr-b-bg-16-x-9}
+\SlidesLogo{utfpr-pg-d}
+
+\input{numeros}
+
+\title[Impressão digital 1:1 com ConvNeXt-Tiny]{%
+  Verificação 1:1 de impressões digitais\\com embeddings de CNN%
+}
+\subtitle{ConvNeXt-Tiny, ResNet-50 e EfficientNet-B0 na FVC2002 DB1 e na FVC2004 DB1}
+\subject{Projeto Final: Biometria (UTFPR Ponta Grossa)}
+\author[L.~R.~de Carvalho]{%
+  Lucas Ribeiro de Carvalho%
+  \AuthorInfo{%
+    ORCID = {0009-0005-2339-0093},%
+    Affil = {UTFPR},%
+    Inst  = {1},%
+  }%
+  \Inst{\faUserTalk}%
+}
+\institute[UTFPR]{%
+  \Affil[1]{\UTFPRName, Ponta Grossa, Paraná, Brasil}%
+  \and\InfoList[\tiny]{\faOrcid}{\MakeInfoList{ORCID}}%
+}
+\DateOrInfo[Biometria, \YearNum]{Disciplina de Biometria, Dupla 3, \YearNum}
+\titlegraphic{%
+  \hfill%
+  \Logo{public-education-l}\hspace*{2mm}%
+  \Logo{utfpr-pg-l}%
+}
+\Campus{Campus Ponta Grossa}
+\Department[Biometria]{Disciplina de Biometria}
+
+\addbibresource{referencias.bib}
+
+\newcommand{\fig}[2]{\includegraphics[#1]{../artigo/figures/#2}}
+
+\begin{document}
+
+\maketitle
+
+\section{Problema}
+
+\begin{frame}{Problema e pergunta}
+\begin{columns}[T]
+\column{0.55\textwidth}
+\begin{itemize}
+\item Verificação 1:1: duas impressões, mesmo dedo ou não?
+\item A CNN gera um \alert{embedding de 256 dimensões}; a comparação é a similaridade de cosseno contra um limiar.
+\item Modelos de tamanho fixo publicados usam centenas de milhares de imagens~\cite{engelsma2021deepprint}.
+\item Aqui o ajuste fino tem \alert{480 imagens de 60 dedos}.
+\end{itemize}
+\column{0.42\textwidth}
+\begin{block}{Pergunta}
+Como três CNNs pré-treinadas na ImageNet se comportam com pouco dado, quanto do desempenho sobrevive à troca de base e sensor, e quanto custam?
+\end{block}
+\end{columns}
+\end{frame}
+
+\section{Método}
+
+\begin{frame}{Dados e protocolo}
+\begin{columns}[T]
+\column{0.55\textwidth}
+\footnotesize
+\begin{tabular}{@{}llc@{}}
+\toprule
+Papel & Base & Dedos \\
+\midrule
+Treino & FVC2002 DB1~\cite{maio2002fvc2002} (A+B) & 60 \\
+Validação & FVC2002 DB1 & 20 \\
+Teste A & FVC2002 DB1 & 30 \\
+Teste C & FVC2004 DB1~\cite{maio2004fvc2004}, nunca treinada & 30 \\
+Teste C, oficial & FVC2004 DB1-A & 100 \\
+\bottomrule
+\end{tabular}
+\column{0.42\textwidth}
+\begin{itemize}
+\item Divisão por identidade, seed 42: nenhum dedo em duas partes.
+\item Época e limiar só na validação; o \alert{limiar fica congelado}.
+\item Treinos com as seeds 2026, 1999 e 1234.
+\end{itemize}
+\end{columns}
+\par\medskip
+\footnotesize
+Sensores ópticos de 500~dpi: Identix TouchView~II (FVC2002 DB1) e CrossMatch V300 (FVC2004 DB1). 110 dedos $\times$ 8 impressões por base.\\
+Pares: validação 560 genuínos e 12\,160 impostores; cada teste de 30 dedos 840 e 27\,840; protocolo oficial 2\,800 e 4\,950.
+\end{frame}
+
+\begin{frame}{Pipeline}
+\centering
+\fig{width=0.76\textwidth}{pipeline.png}
+\par\medskip
+\footnotesize
+500~dpi $\rightarrow$ ROI por blocos $\rightarrow$ QC (FTA se ROI $<40$~mm$^2$) $\rightarrow$ normalização de Hong $\rightarrow$ realce de Gabor~\cite{hong1998enhancement} $\rightarrow$ janela $320\times320$ $\rightarrow$ CNN $\rightarrow$ embedding $\rightarrow$ cosseno $\rightarrow$ limiar $\rightarrow$ decisão
+\par\smallskip
+Desvios do pipeline do enunciado: o realce de Gabor (ablação nos resultados) e a janela fixa no lugar do redimensionamento, para manter a escala das cristas entre sensores.
+\end{frame}
+
+\begin{frame}{CNN, embedding e matching}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{block}{ConvNeXt-Tiny~\cite{liu2022convnext} (principal)}
+\begin{itemize}
+\item ImageNet-1k (\texttt{IMAGENET1K\_V1}), 1 canal.
+\item \texttt{features.0}--\texttt{3} congeladas.
+\item \cnxParams~M parâmetros, \cnxSize~MB.
+\end{itemize}
+\end{block}
+\begin{block}{Comparação}
+\begin{itemize}
+\item ResNet-50~\cite{he2016resnet}: \texttt{layer1}--\texttt{2} congeladas, \rnParams~M, 96,4~MB.
+\item EfficientNet-B0~\cite{tan2019efficientnet}: \texttt{features.0}--\texttt{3} congeladas, \effParams~M, 17,6~MB.
+\end{itemize}
+\end{block}
+\column{0.46\textwidth}
+\begin{itemize}
+\item Cabeça: Linear $\rightarrow$ 256 + BatchNorm, norma L2.
+\item Perda ArcFace~\cite{deng2019arcface}, $m=0{,}3$, $s=30$; lotes de 16 dedos $\times$ 4.
+\item AdamW, lr $3\times10^{-4}$, 80 épocas; melhor época pela EER de validação.
+\item Score: $s=\mathbf{e}_a^\top\mathbf{e}_b$; aceita se $s\ge t$.
+\item Hardware: RTX~4060 8~GB, Ryzen~5 5600X, PyTorch 2.6; um treino leva de 3,4 a 5,7~min.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\section{Resultados}
+
+\begin{frame}{Resultados: três CNNs (A, B e C)}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+EER (\%) & FVC2002 & FVC2004 & 2004 oficial \\
+\midrule
+\alert{ConvNeXt-Tiny} & \alert{$7{,}87\pm0{,}29$} & \alert{$8{,}32\pm0{,}44$} & \alert{$10{,}42\pm0{,}17$} \\
+ResNet-50 & $9{,}54\pm0{,}95$ & $13{,}20\pm0{,}64$ & $14{,}78\pm1{,}02$ \\
+EfficientNet-B0 & $7{,}92\pm0{,}40$ & $12{,}24\pm0{,}39$ & $14{,}08\pm0{,}46$ \\
+ConvNeXt s/ realce & $6{,}89\pm0{,}78$ & $10{,}35\pm0{,}72$ & $11{,}29\pm0{,}84$ \\
+ConvNeXt s/ ajuste & \imA & \imC & \imO \\
+\bottomrule
+\end{tabular}
+\par\medskip
+\footnotesize
+Média $\pm$ desvio-padrão de três seeds. EER de validação: \cnxVal, \rnVal\ e \effVal.\\
+IC 95\% da ConvNeXt (bootstrap sobre dedos): \cnxCIA\ e \cnxCIC.\\
+Experimento B parcial: sem a CNN da outra dupla.
+\column{0.47\textwidth}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ConvNeXt-Tiny & FVC2002 & FVC2004 & 2004 oficial \\
+\midrule
+\alert{Limiar} & \multicolumn{3}{c}{\alert{$0{,}368\pm0{,}010$} (congelado)} \\
+FMR (\%) & 6,39 & 6,92 & 7,57 \\
+FNMR (\%) & 9,56 & 10,79 & 14,10 \\
+AUC & 0,976 & 0,966 & 0,955 \\
+TAR@FAR=1\% (\%) & 68,8 & 46,5 & 50,9 \\
+FTA (\%) & 0,00 & 0,00 & 0,00 \\
+\bottomrule
+\end{tabular}
+\par\medskip
+\footnotesize
+Rede, GPU, lote 1 (média): 9,7 / 10,3 / 16,3~ms para ConvNeXt / ResNet / EfficientNet.\\
+Pré-processamento com realce: 76 a 125~ms em CPU.
+\end{columns}
+\end{frame}
+
+\begin{frame}{Resultados: minúcias e fusão}
+\begin{columns}[T]
+\column{0.54\textwidth}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+EER (\%) & Valid. & FVC2002 & FVC2004 & 2004 oficial \\
+\midrule
+ConvNeXt-Tiny & \cnxVal & \cnxA & \cnxC & \cnxO \\
+SourceAFIS~\cite{vazan2024sourceafis} & 2,61 & 2,71 & 9,31 & 12,18 \\
+\alert{Fusão CNN + minúcias} & \fusVal & \alert{\fusA} & \alert{\fusC} & \alert{\fusO} \\
+\bottomrule
+\end{tabular}
+\par\medskip
+\footnotesize
+\begin{itemize}
+\item O SourceAFIS ganha com folga na FVC2002 DB1 e é quem mais piora na troca de sensor.
+\item Fusão: scores normalizados pelos impostores de validação, peso de 0,6 ou 0,7 para a CNN, fixado na validação.
+\item Na FVC2004 DB1 a fusão fica abaixo dos dois comparadores, com intervalos que excluem zero.
+\end{itemize}
+\column{0.42\textwidth}
+\centering
+\fig{width=\linewidth}{roc.pdf}\\[-2pt]
+{\scriptsize ROC da seed 2026}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Scores e limiar}
+\centering
+\fig{width=0.8\textwidth}{distributions.pdf}
+\par\medskip
+\begin{itemize}
+\item Limiar da validação reutilizado sem mudança nas duas bases: \cnxThr\ na média das três seeds; a figura é da seed 2026 (\cnxThrFig).
+\item \cnxTransfer
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Robustez e ablação}
+\begin{columns}[T]
+\column{0.42\textwidth}
+\centering
+\fig{height=0.72\textheight}{robustness.pdf}
+\column{0.54\textwidth}
+\begin{itemize}
+\item Desfoque e rotação em quatro níveis nos 30 dedos de teste da FVC2002 DB1, modelo e limiar congelados.
+\item \robBlur
+\item \robRot
+\item O QC por área marcou só 3 das 240 imagens com $\sigma=3$.
+\end{itemize}
+\begin{block}{Ablação: sem o realce de Gabor}
+\ablText
+\end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Análise de erros}
+\centering
+\fig{width=0.66\textwidth}{errors_fvc2002_db1.png}\\[-2pt]
+{\scriptsize FVC2002 DB1: falsos matches (acima) e falsos não-matches (abaixo)}
+\par\smallskip
+\footnotesize
+\begin{itemize}
+\item \errFM
+\item \errFNM
+\item \errC
+\end{itemize}
+\end{frame}
+
+\section{Limitações}
+
+\begin{frame}{Limitações}
+\begin{itemize}
+\item \alert{Experimento B parcial}: os scores da outra dupla não chegaram; a comparação é entre as nossas três CNNs.
+\item Treino com 60 dedos de um só sensor; o limiar e a época saem de 20 dedos, e a EER de validação (3,8\%) é metade da de teste.
+\item Os hiperparâmetros vêm de uma fase anterior em que os dedos 107 e 109 estavam no teste. Sem eles, a EER é 7,95\% na FVC2002 DB1 e 7,94\% na FVC2004 DB1.
+\item A ResNet-50 e a EfficientNet-B0 não tiveram ajuste próprio; a latência do SourceAFIS não foi medida.
+\item Desfoque e rotação medidos só na FVC2002 DB1; as hipóteses da análise de erros não foram testadas.
+\end{itemize}
+\end{frame}
+
+\section{Conclusões}
+
+\begin{frame}{Conclusões}
+\begin{itemize}
+\item \conclA
+\item \conclB
+\item \conclC
+\item \conclD
+\end{itemize}
+\vfill
+\begin{exampleblock}{Próximos passos}
+\small Mais dados de treino (outras bases FVC), critério de nitidez no QC, período de crista por região e alinhamento por pose.
+\end{exampleblock}
+\par\smallskip
+{\footnotesize Código, protocolos e scores: \url{https://github.com/lucthesloth/biometria26.2}, tag \texttt{final-v1.0}.}
+\end{frame}
+
+\section<presentation>{\refname}
+
+\begin{frame}<presentation>[allowframebreaks]{\refname}
+\printbibliography[heading = none]
+\end{frame}
+
+\appendix
+
+\begin{frame}{Apoio: otimização}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+EER / FMR / FNMR (\%) & FVC2002 & 2004 oficial \\
+\midrule
+Base: 60 dedos, 1 rede & 7,9 / 6,4 / 9,6 & 10,4 / 7,6 / 14,1 \\
+390 dedos, 2 redes & 4,1 / 3,6 / 4,6 & 6,2 / 3,5 / 11,0 \\
+745 dedos, 4 redes & 3,1 / 3,2 / 3,1 & 4,3 / 2,3 / 8,1 \\
+\alert{745 dedos, 12 redes} & \alert{2,7 / 2,8 / 2,7} & \alert{3,8 / 1,9 / 7,5} \\
+\bottomrule
+\end{tabular}
+\par\medskip
+\footnotesize
+\begin{itemize}
+\item À parte do resultado principal, só para a ConvNeXt-Tiny.
+\item Ficaram: mais bases no treino (a \alert{FVC2004 DB1 segue fora}), soma de redes com Gabor e com Hong, score normalizado.
+\item Saíram 10 tentativas que não melhoraram a validação.
+\item Custo: 12 redes, cerca de 110~ms e 1,3~GB.
+\end{itemize}
+\column{0.46\textwidth}
+\centering
+\fig{height=0.74\textheight}{otimizacao.pdf}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Apoio: tentativas}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccl@{\hspace{8mm}}lccl@{}}
+\toprule
+Etapa 1 & Sem & Com & & Etapa 2 & Sem & Com & \\
+\midrule
+Apagamento aleatório & 3,41 & 3,04 & fora & Distorção suave, cristas finas/grossas & 2,70 & 3,45 & fora \\
+Apagamento e translação 20\% & 3,41 & 2,60 & fora & Média móvel dos pesos & 2,70 & 3,04 & fora \\
+Um estágio congelado a menos & 3,41 & 3,21 & fora & Busca de rotação na comparação & 2,27 & 2,32 & fora \\
+Margem ArcFace 0,5 & 3,41 & 3,75 & fora & 785 dedos (FVC2004 DB2--4) & 2,70 & 2,20 & \alert{fica} \\
+160 épocas & 3,41 & 3,29 & fora & Rotação $45^\circ$, translação 20\% & 5,78 & 5,18 & \alert{fica} \\
+390 dedos & 3,84 & 2,27 & \alert{fica} & Translação 30\% & 5,18 & 5,71 & fora \\
+Soma Gabor + Hong & 2,27 & 1,86 & \alert{fica} & Score normalizado & 3,39 & 3,10 & \alert{fica} \\
+Média em rotações & 2,70 & 3,21 & fora & Soma das três seeds & 2,67 & 2,26 & \alert{fica} \\
+\bottomrule
+\end{tabular}
+\par\medskip
+\footnotesize
+EER (\%) nos dedos de validação, sem e com cada mudança. Na etapa 1, ganhos abaixo de um ponto com uma seed ficaram fora.
+\end{frame}
+
+\end{document}

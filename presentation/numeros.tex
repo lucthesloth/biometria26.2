@@ -1,0 +1,22 @@
+\newcommand{\cnxParams}{28,01}\newcommand{\cnxSize}{112,1}\newcommand{\rnParams}{24,03}\newcommand{\effParams}{4,34}
+\newcommand{\cnxVal}{3,84}\newcommand{\cnxA}{7,87}\newcommand{\cnxC}{8,32}\newcommand{\cnxO}{10,42}
+\newcommand{\rnVal}{5,36}\newcommand{\rnA}{9,54}\newcommand{\rnC}{13,20}\newcommand{\rnO}{14,78}
+\newcommand{\effVal}{5,10}\newcommand{\effA}{7,92}\newcommand{\effC}{12,24}\newcommand{\effO}{14,08}
+\newcommand{\ablVal}{4,38}\newcommand{\ablA}{6,89}\newcommand{\ablC}{10,35}\newcommand{\ablO}{11,29}
+\newcommand{\imVal}{27,50}\newcommand{\imA}{29,49}\newcommand{\imC}{34,88}\newcommand{\imO}{34,75}
+\newcommand{\fusVal}{1,49}\newcommand{\fusA}{2,73}\newcommand{\fusC}{4,96}\newcommand{\fusO}{6,86}
+\newcommand{\cnxCIA}{5,6 a 10,0\% (FVC2002)}\newcommand{\cnxCIC}{6,3 a 11,0\% (FVC2004)}
+\newcommand{\cnxFMRA}{6,4\%}\newcommand{\cnxFMRC}{6,9\%}\newcommand{\cnxFNMRA}{9,6\%}\newcommand{\cnxFNMRC}{10,8\%}
+\newcommand{\cnxThr}{0,368}\newcommand{\cnxThrFig}{0,380}
+\newcommand{\custo}{Custo por imagem: rede em 9,7 / 10,3 / 16,3~ms (ConvNeXt / ResNet / EfficientNet, GPU, lote 1, média); pré-processamento com realce de Gabor, 76 a 125~ms em CPU.}
+\newcommand{\cnxTransfer}{EER de 3,8\% na validação, 7,9\% no teste da FVC2002 e 8,3\% na FVC2004: a perda maior é dentro da própria base. Na FVC2004 o erro dominante é de rejeição (FNMR de 10,8\%).}
+\newcommand{\robBlur}{Desfoque com $\sigma=3$: EER de 27,2\% e \alert{FMR de 75,7\%}; o sistema aceita impostores.}
+\newcommand{\robRot}{Rotação de $30^\circ$: EER de 10,7\%; só a FNMR sobe (18,5\%).}
+\newcommand{\ablText}{Sem realce, a EER cai 1,0 ponto na FVC2002 (IC contém zero) e sobe 2,0 pontos na FVC2004 (IC de 0,3 a 3,4). No protocolo oficial o ganho é de 0,9 ponto e o IC contém zero.}
+\newcommand{\errFM}{Falsos matches com score de 0,78 a 0,81, bem acima do limiar de 0,380: laços com núcleo e fluxo de cristas parecidos (dedos 92 e 98, 23 e 36).}
+\newcommand{\errFNM}{Os três falsos não-matches envolvem 75\_5, que mostra só a ponta do dedo (99~mm$^2$) e fica sem região comum com as outras impressões.}
+\newcommand{\errC}{Na FVC2004 DB1 os erros extremos repetem o quadro: capturas parciais e imagens pouco nítidas.}
+\newcommand{\conclA}{Na FVC2002 DB1 as três CNNs empatam; a ConvNeXt-Tiny tem EER de 7,9\% (IC de 5,6 a 10,0).}
+\newcommand{\conclB}{Na FVC2004 DB1, nunca treinada, a ConvNeXt-Tiny fica de 3,7 a 4,9 pontos abaixo das outras, com o mesmo limiar.}
+\newcommand{\conclC}{O SourceAFIS ganha na FVC2002 (2,7\%), mas a fusão com a CNN tem a menor EER da configuração base na FVC2004 (5,0\% e 6,9\%) e iguala o SourceAFIS na FVC2002 (2,7\%).}
+\newcommand{\conclD}{Com desfoque forte o sistema aceita 76\% dos impostores: o QC precisa de um critério de nitidez.}

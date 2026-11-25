@@ -1,0 +1,13 @@
+{
+  "rule": "eer",
+  "threshold": 2.0148277963910775,
+  "validation_eer": 0.023214285714285715,
+  "members": [
+    "w2/seed1234",
+    "w2_hong/seed1234",
+    "w2_pose/seed1234",
+    "w2_pose_hong/seed1234"
+  ],
+  "asnorm": 100,
+  "validation": "protocols/wide_val"
+}

@@ -1,0 +1,88 @@
+avaliacao,execucao,metrica,valor,ic95_inf,ic95_sup
+fvc2002_db1,convnext_tiny_gabor,EER,7.87,5.61,10.04
+fvc2002_db1,convnext_tiny_gabor,FMR,6.39,4.21,9.43
+fvc2002_db1,convnext_tiny_gabor,FNMR,9.56,5.12,14.72
+fvc2002_db1,resnet50_gabor,EER,9.54,7.25,11.74
+fvc2002_db1,resnet50_gabor,FMR,7.58,5.57,10.27
+fvc2002_db1,resnet50_gabor,FNMR,11.63,7.58,16.23
+fvc2002_db1,efficientnet_b0_gabor,EER,7.92,5.83,10.08
+fvc2002_db1,efficientnet_b0_gabor,FMR,7.12,4.9,10.24
+fvc2002_db1,efficientnet_b0_gabor,FNMR,8.69,4.8,13.06
+fvc2002_db1,convnext_tiny_hong,EER,6.89,5.18,8.32
+fvc2002_db1,convnext_tiny_hong,FMR,8.36,6.19,11.02
+fvc2002_db1,convnext_tiny_hong,FNMR,5.48,2.9,8.45
+fvc2002_db1,imagenet_convnext_tiny,EER,29.49,26.67,32.49
+fvc2002_db1,imagenet_convnext_tiny,FMR,40.72,33.1,49.28
+fvc2002_db1,imagenet_convnext_tiny,FNMR,23.1,18.1,28.33
+fvc2002_db1,sourceafis,EER,2.71,1.43,3.98
+fvc2002_db1,sourceafis,FMR,3.83,2.53,5.57
+fvc2002_db1,sourceafis,FNMR,2.38,0.95,4.05
+fvc2002_db1,convnext_tiny_gabor_fusion,EER,2.73,1.13,4.4
+fvc2002_db1,convnext_tiny_gabor_fusion,FMR,3.27,1.9,5.26
+fvc2002_db1,convnext_tiny_gabor_fusion,FNMR,2.66,0.87,5.0
+fvc2002_db1,resnet50_gabor - convnext_tiny_gabor,dEER,1.67,-0.13,3.46
+fvc2002_db1,efficientnet_b0_gabor - convnext_tiny_gabor,dEER,0.05,-1.49,1.58
+fvc2002_db1,convnext_tiny_hong - convnext_tiny_gabor,dEER,-0.97,-2.78,0.67
+fvc2002_db1,imagenet_convnext_tiny - convnext_tiny_gabor,dEER,21.62,18.47,24.91
+fvc2002_db1,sourceafis - convnext_tiny_gabor,dEER,-5.16,-6.96,-3.44
+fvc2002_db1,convnext_tiny_gabor_fusion - convnext_tiny_gabor,dEER,-5.14,-6.96,-3.61
+fvc2002_db1,convnext_tiny_gabor_fusion - sourceafis,dEER,0.02,-0.71,0.83
+fvc2002_db1,efficientnet_b0_gabor - resnet50_gabor,dEER,-1.62,-3.24,0.04
+fvc2004_db1,convnext_tiny_gabor,EER,8.32,6.27,11.0
+fvc2004_db1,convnext_tiny_gabor,FMR,6.92,4.73,10.19
+fvc2004_db1,convnext_tiny_gabor,FNMR,10.79,6.23,16.35
+fvc2004_db1,resnet50_gabor,EER,13.2,10.41,16.04
+fvc2004_db1,resnet50_gabor,FMR,8.53,6.3,11.95
+fvc2004_db1,resnet50_gabor,FNMR,19.29,12.86,26.43
+fvc2004_db1,efficientnet_b0_gabor,EER,12.24,9.8,14.83
+fvc2004_db1,efficientnet_b0_gabor,FMR,7.44,4.77,11.29
+fvc2004_db1,efficientnet_b0_gabor,FNMR,19.09,12.98,26.03
+fvc2004_db1,convnext_tiny_hong,EER,10.35,8.5,12.52
+fvc2004_db1,convnext_tiny_hong,FMR,11.22,7.97,15.75
+fvc2004_db1,convnext_tiny_hong,FNMR,9.29,5.6,13.73
+fvc2004_db1,imagenet_convnext_tiny,EER,34.88,31.79,37.84
+fvc2004_db1,imagenet_convnext_tiny,FMR,18.68,13.77,24.36
+fvc2004_db1,imagenet_convnext_tiny,FNMR,52.74,46.79,58.69
+fvc2004_db1,sourceafis,EER,9.31,6.56,12.38
+fvc2004_db1,sourceafis,FMR,2.02,1.31,2.93
+fvc2004_db1,sourceafis,FNMR,12.62,8.45,16.9
+fvc2004_db1,convnext_tiny_gabor_fusion,EER,4.96,3.3,6.88
+fvc2004_db1,convnext_tiny_gabor_fusion,FMR,3.08,1.65,5.39
+fvc2004_db1,convnext_tiny_gabor_fusion,FNMR,7.34,4.05,11.27
+fvc2004_db1,resnet50_gabor - convnext_tiny_gabor,dEER,4.88,2.9,6.34
+fvc2004_db1,efficientnet_b0_gabor - convnext_tiny_gabor,dEER,3.91,2.36,5.09
+fvc2004_db1,convnext_tiny_hong - convnext_tiny_gabor,dEER,2.03,0.32,3.42
+fvc2004_db1,imagenet_convnext_tiny - convnext_tiny_gabor,dEER,26.56,22.85,29.53
+fvc2004_db1,sourceafis - convnext_tiny_gabor,dEER,0.98,-2.05,3.92
+fvc2004_db1,convnext_tiny_gabor_fusion - convnext_tiny_gabor,dEER,-3.37,-4.83,-2.28
+fvc2004_db1,convnext_tiny_gabor_fusion - sourceafis,dEER,-4.35,-6.72,-2.26
+fvc2004_db1,efficientnet_b0_gabor - resnet50_gabor,dEER,-0.97,-2.61,0.71
+fvc2004_db1_official,convnext_tiny_gabor,EER,10.42,9.06,11.89
+fvc2004_db1_official,convnext_tiny_gabor,FMR,7.57,6.03,9.59
+fvc2004_db1_official,convnext_tiny_gabor,FNMR,14.1,11.13,17.32
+fvc2004_db1_official,resnet50_gabor,EER,14.78,13.18,16.35
+fvc2004_db1_official,resnet50_gabor,FMR,9.64,7.85,11.83
+fvc2004_db1_official,resnet50_gabor,FNMR,21.65,18.08,25.35
+fvc2004_db1_official,efficientnet_b0_gabor,EER,14.08,12.71,15.68
+fvc2004_db1_official,efficientnet_b0_gabor,FMR,9.21,7.28,11.61
+fvc2004_db1_official,efficientnet_b0_gabor,FNMR,20.82,17.5,24.25
+fvc2004_db1_official,convnext_tiny_hong,EER,11.29,9.89,12.92
+fvc2004_db1_official,convnext_tiny_hong,FMR,11.45,9.1,14.48
+fvc2004_db1_official,convnext_tiny_hong,FNMR,11.21,8.93,13.71
+fvc2004_db1_official,imagenet_convnext_tiny,EER,34.75,31.75,37.75
+fvc2004_db1_official,imagenet_convnext_tiny,FMR,19.49,14.72,25.02
+fvc2004_db1_official,imagenet_convnext_tiny,FNMR,50.25,47.0,53.5
+fvc2004_db1_official,sourceafis,EER,12.18,10.36,14.36
+fvc2004_db1_official,sourceafis,FMR,4.59,2.99,6.55
+fvc2004_db1_official,sourceafis,FNMR,15.82,12.93,18.93
+fvc2004_db1_official,convnext_tiny_gabor_fusion,EER,6.86,5.62,8.06
+fvc2004_db1_official,convnext_tiny_gabor_fusion,FMR,3.62,2.63,4.79
+fvc2004_db1_official,convnext_tiny_gabor_fusion,FNMR,10.04,7.81,12.42
+fvc2004_db1_official,resnet50_gabor - convnext_tiny_gabor,dEER,4.36,3.16,5.52
+fvc2004_db1_official,efficientnet_b0_gabor - convnext_tiny_gabor,dEER,3.66,2.53,4.96
+fvc2004_db1_official,convnext_tiny_hong - convnext_tiny_gabor,dEER,0.86,-0.57,2.31
+fvc2004_db1_official,imagenet_convnext_tiny - convnext_tiny_gabor,dEER,24.33,21.21,27.34
+fvc2004_db1_official,sourceafis - convnext_tiny_gabor,dEER,1.75,-0.13,3.89
+fvc2004_db1_official,convnext_tiny_gabor_fusion - convnext_tiny_gabor,dEER,-3.57,-4.63,-2.64
+fvc2004_db1_official,convnext_tiny_gabor_fusion - sourceafis,dEER,-5.32,-6.91,-4.1
+fvc2004_db1_official,efficientnet_b0_gabor - resnet50_gabor,dEER,-0.7,-1.67,0.49

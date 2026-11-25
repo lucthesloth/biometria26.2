@@ -1,0 +1,6 @@
+{
+  "rule": "eer",
+  "threshold": 0.9099892377853394,
+  "validation_eer": 0.275,
+  "source": "results/fvc2002_db1_val/imagenet_convnext_tiny/seed0/threshold.json"
+}

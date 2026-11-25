@@ -1,0 +1,47 @@
+# datasets are never redistributed
+data/raw/
+data/processed/
+# checkpoints and embeddings are large; results/ (scores.csv, metrics.json, plots) is committed
+runs/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# LaTeX build files (the compiled artigo/main.pdf is committed)
+artigo/*.aux
+artigo/*.bbl
+artigo/*.blg
+artigo/*.log
+artigo/*.out
+artigo/*.fls
+artigo/*.fdb_latexmk
+artigo/*.synctex.gz
+artigo/*.nav
+artigo/*.snm
+artigo/*.toc
+artigo/*.vrb
+
+# Java build output of the SourceAFIS baseline
+baselines/sourceafis/target/
+
+# Colab bundles (contain the images)
+colab/*.zip
+colab/*.tgz
+colab/*.tar
+
+# LaTeX build files of the slides
+presentation/*.aux
+presentation/*.bbl
+presentation/*.bcf
+presentation/*.blg
+presentation/*.log
+presentation/*.fls
+presentation/*.fdb_latexmk
+presentation/*.nav
+presentation/*.snm
+presentation/*.toc
+presentation/*.run.xml
+*.synctex.gz
+.ruff_cache/

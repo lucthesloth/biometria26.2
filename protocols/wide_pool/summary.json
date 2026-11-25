@@ -1,0 +1,20 @@
+{
+  "train_fingers": 785,
+  "train_images": 6280,
+  "train_fingers_by_source": {
+    "fvc2002_db1": 60,
+    "fvc2002_db2": 110,
+    "fvc2002_db3": 110,
+    "fvc2002_db4": 110,
+    "fvc2004_db2": 110,
+    "fvc2004_db3": 110,
+    "fvc2004_db4": 110,
+    "neurotech_uareu": 65
+  },
+  "validation_fingers": 20,
+  "validation_fingers_by_source": {
+    "fvc2002_db1": 20
+  },
+  "validation_genuine": 560,
+  "validation_impostor": 12160
+}

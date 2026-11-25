@@ -1,0 +1,8 @@
+{
+  "rule": "eer",
+  "threshold": 2.317601893410682,
+  "validation_eer": 0.017680921052631526,
+  "weight_a": 0.8,
+  "a": "results/otimizacao:pool",
+  "b": "results/otimizacao:pool_hong"
+}

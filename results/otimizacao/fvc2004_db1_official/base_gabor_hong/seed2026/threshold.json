@@ -1,0 +1,8 @@
+{
+  "rule": "eer",
+  "threshold": 2.030475622803965,
+  "validation_eer": 0.025822368421052677,
+  "weight_a": 0.6,
+  "a": "results:convnext_tiny_gabor",
+  "b": "results:convnext_tiny_hong"
+}

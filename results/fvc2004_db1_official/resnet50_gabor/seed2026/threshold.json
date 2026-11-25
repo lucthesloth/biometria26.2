@@ -1,0 +1,6 @@
+{
+  "rule": "eer",
+  "threshold": 0.296593074287687,
+  "validation_eer": 0.05714285714285714,
+  "source": "results/fvc2002_db1_val/resnet50_gabor/seed2026/threshold.json"
+}

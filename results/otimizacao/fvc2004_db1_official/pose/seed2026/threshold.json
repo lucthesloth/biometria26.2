@@ -1,0 +1,6 @@
+{
+  "rule": "eer",
+  "threshold": 0.35251206159591675,
+  "validation_eer": 0.02598684210526314,
+  "source": "results/otimizacao/fvc2002_db1_val/pose/seed2026/threshold.json"
+}

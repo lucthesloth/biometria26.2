@@ -1,0 +1,22 @@
+{
+  "n_genuine": 2800,
+  "n_impostor": 4950,
+  "threshold": 0.3235958032310009,
+  "fmr": 0.08161616161616161,
+  "fnmr": 0.22071428571428572,
+  "eer": 0.13857142857142857,
+  "eer_threshold": 0.2442024371453694,
+  "auc": 0.9337102453102454,
+  "d_prime": 2.2359890937805176,
+  "fmr100_fnmr": 0.6071428571428571,
+  "fmr1000_fnmr": 0.8757142857142857,
+  "tar_at_far_1pct": 0.3928571428571429,
+  "tar_at_far_0_1pct": 0.12428571428571433,
+  "fta": 0.0,
+  "far": 0.08161616161616161,
+  "frr": 0.22071428571428572,
+  "pairs_dropped": 0.0,
+  "fta_note": "fta is the per-sample failure-to-acquire rate from qc.csv over the samples in these pairs; pairs_dropped is the fraction of pairs removed because one of their samples failed",
+  "evaluated_on": "protocols/fvc2004_db1_official/test_pairs.csv",
+  "threshold_source": "results/fvc2002_db1_val/efficientnet_b0_gabor/seed1999/threshold.json"
+}

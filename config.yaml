@@ -1,0 +1,150 @@
+# Single source of truth for every script. Override any key with --set key.sub=value.
+seed: 42
+seeds: [2026, 1999, 1234]           # training seeds (assignment section 17); `seed` (42) fixes protocols and pairs
+
+datasets:
+  # Evaluation bases, laid out as on the FVC DVDs: <root>/<subdir>/<finger>_<impression>.tif. `subdirs` picks DB1
+  # out of the four databases of each competition (see data/README.md).
+  fvc2002_db1:
+    root: data/raw/FVC2002/Dbs
+    subdirs: [Db1_a, Db1_b]
+    dpi: 500
+    image_size: [388, 374]          # width, height
+    sensor: "Identix TouchView II (optical)"
+  fvc2004_db1:
+    root: data/raw/FVC2004/Dbs
+    subdirs: [DB1_A, DB1_B]
+    dpi: 500
+    image_size: [640, 480]
+    sensor: "CrossMatch V300 (optical)"
+
+  # Set-B sources of the earlier pool design; not used by the current results.
+  # 10 fingers x 8 impressions each, except U.are.U (65 x 8). The FVC2000 folders are no longer in data/raw.
+  # Neurotechnology CrossMatch is left out on purpose: same V300 sensor as FVC2004 DB1, the cross-dataset target.
+  fvc2000_db1_b: {root: data/raw/FVC2000/DB1, dpi: 500, sensor: "KeyTronic Secure Desktop (optical)"}
+  fvc2000_db2_b: {root: data/raw/FVC2000/DB2, dpi: 500, sensor: "ST TouchChip (capacitive)"}
+  fvc2000_db3_b: {root: data/raw/FVC2000/DB3, dpi: 500, sensor: "Identicator DF-90 (optical)"}
+  fvc2000_db4_b: {root: data/raw/FVC2000/DB4, dpi: 500, sensor: "SFinGe (synthetic)"}
+  fvc2002_db2_b: {root: data/raw/FVC2002/Dbs, subdirs: [Db2_b], dpi: 569, sensor: "Biometrika FX2000 (optical)"}
+  fvc2002_db3_b: {root: data/raw/FVC2002/Dbs, subdirs: [Db3_b], dpi: 500, sensor: "Precise 100 SC (capacitive)"}
+  fvc2002_db4_b: {root: data/raw/FVC2002/Dbs, subdirs: [Db4_b], dpi: 500, sensor: "SFinGe v2.51 (synthetic)"}
+  # fvc2004_db2_b keeps the 512 dpi used in the earlier phase; FVC2004 lists DB2 at 500 dpi (fvc2004_db2 below).
+  fvc2004_db2_b: {root: data/raw/FVC2004/Dbs, subdirs: [DB2_B], dpi: 512, sensor: "DigitalPersona U.are.U 4000 (optical)"}
+  fvc2004_db3_b: {root: data/raw/FVC2004/Dbs, subdirs: [DB3_B], dpi: 512, sensor: "Atmel FingerChip (thermal sweep)"}
+  fvc2004_db4_b: {root: data/raw/FVC2004/Dbs, subdirs: [DB4_B], dpi: 500, sensor: "SFinGe v3.0 (synthetic)"}
+  neurotech_uareu: {root: data/raw/Neurotechnology/UareU, dpi: 512, sensor: "DigitalPersona U.are.U 4000 (optical)"}
+
+  # Extra FVC2002 training data for the optimisation attempt (otimizacao/): the other three databases of the same
+  # competition, other sensors and other volunteers. FVC2004 stays out of every training set.
+  fvc2002_db2: {root: data/raw/FVC2002/Dbs, subdirs: [Db2_a, Db2_b], dpi: 569, sensor: "Biometrika FX2000 (optical)"}
+  fvc2002_db3: {root: data/raw/FVC2002/Dbs, subdirs: [Db3_a, Db3_b], dpi: 500, sensor: "Precise 100 SC (capacitive)"}
+  fvc2002_db4: {root: data/raw/FVC2002/Dbs, subdirs: [Db4_a, Db4_b], dpi: 500, sensor: "SFinGe v2.51 (synthetic)"}
+  fvc2002_pool:
+    root: data/raw/FVC2002/Dbs
+    sources: [fvc2002_db1, fvc2002_db2, fvc2002_db3, fvc2002_db4]   # fingers become source_index * 1000 + finger
+
+  # Second optimisation step (otimizacao/): FVC2002 DB1 to DB4 plus FVC2004 DB2 to DB4 and U.are.U. FVC2004 DB1, the
+  # cross-dataset target, stays out; FVC2004 DB2 to DB4 use other sensors and other volunteers than DB1.
+  fvc2004_db2: {root: data/raw/FVC2004/Dbs, subdirs: [DB2_A, DB2_B], dpi: 500, sensor: "DigitalPersona U.are.U 4000 (optical)"}
+  fvc2004_db3: {root: data/raw/FVC2004/Dbs, subdirs: [DB3_A, DB3_B], dpi: 512, sensor: "Atmel FingerChip (thermal sweep)"}
+  fvc2004_db4: {root: data/raw/FVC2004/Dbs, subdirs: [DB4_A, DB4_B], dpi: 500, sensor: "SFinGe v3.0 (synthetic)"}
+  wide_pool:
+    root: data/raw
+    sources: [fvc2002_db1, fvc2002_db2, fvc2002_db3, fvc2002_db4, fvc2004_db2, fvc2004_db3, fvc2004_db4, neurotech_uareu]
+
+  # Pool of set-B databases used before set A was available; not used by the current design.
+  public_pool:
+    root: data/raw
+    sources: [fvc2000_db1_b, fvc2000_db2_b, fvc2000_db3_b, fvc2000_db4_b, fvc2002_db2_b, fvc2002_db3_b,
+              fvc2002_db4_b, fvc2004_db2_b, fvc2004_db3_b, fvc2004_db4_b, neurotech_uareu]
+    split: {train: 130, validation: 35}
+
+train_dataset: fvc2002_db1             # sets A + B, 110 fingers; the 60/20/30 split below
+main_dataset: fvc2002_db1
+second_dataset: fvc2004_db1
+
+# Protocol folders under protocols/ (make_protocols.py). Validation picks the epoch and the frozen threshold;
+# every test protocol reuses that threshold unchanged.
+evaluations:
+  validation: fvc2002_db1_val          # 20 validation fingers of FVC2002 DB1
+  tests:
+    fvc2002_db1: fvc2002_db1           # Experiment A: 30 test fingers of FVC2002 DB1
+    fvc2004_db1: fvc2004_db1           # Experiment C: same seed-42 split of FVC2004 DB1, 30 test fingers
+    fvc2004_db1_official: fvc2004_db1  # Experiment C: official FVC protocol on set A (2800 / 4950)
+
+protocol:
+  # Identity-disjoint split over the 110 fingers (sets A and B). Fingers never cross splits.
+  split: {train: 60, validation: 20, test: 30}
+  # fvc  = official rule: all C(8,2) genuine pairs per finger; impostor = impression 1 vs impression 1.
+  # all  = every cross-identity pair (more impostors, makes TAR@FAR=1% feasible on small test splits).
+  impostor_mode: all
+  official_impostor_mode: fvc
+
+preprocess:
+  target_dpi: 500                   # every image is resampled to this before segmentation
+  block_size: 16                   # px at 500 dpi, about two ridge periods
+  fg_std_threshold: null            # null -> Otsu on the block-std map
+  min_foreground_mm2: 40            # usable area below this (about 15,500 px at 500 dpi) is a Failure To Acquire
+  normalization: gabor              # none | zscore | hong | hong_zscore | gabor (Hong + Gabor ridge enhancement)
+  hong_mean: 128.0
+  hong_var: 2500.0                  # std 50; variance 100 left about 31 gray levels per image
+  background_fill: 128              # outside the ROI and past the image border; train.py augmentation uses it too
+  window_size: 320                  # px at native 500 dpi, centred on the ROI centroid, no per-image rescale
+  output_size: 320                  # network input; != window_size resizes every image by the same factor
+  output_dir: data/processed
+
+model:
+  backbone: convnext_tiny           # resnet18 | resnet50 | convnext_tiny | efficientnet_b0 | mobilenet_v3_large
+  weights: IMAGENET1K_V1            # torchvision weights enum name, or null for random init; resnet50 uses IMAGENET1K_V2
+  in_channels: 1                    # 1 sums the pretrained first conv over RGB; 3 replicates grayscale
+  embedding_dim: 256
+  loss: arcface                     # arcface | triplet
+  arcface: {margin: 0.3, scale: 30.0}
+  triplet: {margin: 0.3}
+
+train:
+  epochs: 80                        # 40 and 80 compared on sensor-disjoint validation (results/fase_anterior/tuning_lso.csv)
+  batch_identities: 16              # P identities per batch
+  samples_per_identity: 4           # K impressions per identity
+  lr: 3.0e-4                        # ResNet-50: results/fase_anterior/tuning.csv; ConvNeXt-Tiny 3e-4 vs 1e-4 on LSO validation (results/fase_anterior/tuning_lso.csv)
+  weight_decay: 5.0e-4
+  freeze_until: features.3          # backbone stage (convnext: features.0..7; resnet: layer1..4, layer2 for resnet50); null = none
+  amp: true                         # bfloat16 autocast on CUDA; the ArcFace head stays in float32
+  num_workers: 4
+  device: auto                      # auto | cpu | cuda
+  deterministic: true
+  ema_decay: 0.0                    # > 0: validate and save an exponential moving average of the weights
+  augment:
+    rotation_deg: 30
+    translate: 0.10
+    blur_p: 0.3
+    blur_sigma: [0.1, 1.5]
+    brightness: 0.2
+    contrast: 0.2
+    elastic_alpha: 0                # > 0 turns on elastic distortion (skin deformation)
+    elastic_sigma: 6.0
+    elastic_p: 0.5
+    erase_p: 0.0                    # random erasing (partial capture)
+    erase_scale: [0.05, 0.25]
+    warp_px: 0                      # > 0: smooth skin distortion on the GPU, max lattice displacement in px (otimizacao/)
+    warp_grid: 4
+    warp_p: 0.5
+    morph_p: 0.0                    # 3x3 dilation or erosion of the ridges (dry / wet capture), on the GPU
+  runs_dir: runs
+
+eval:
+  threshold_rule: eer               # eer | fmr_target
+  fmr_target: 0.01
+  batch_size: 32
+  timing_repeats: 100
+  timing_warmup: 20
+  results_dir: results
+
+robustness:
+  perturbation: blur                # blur | rotation
+  apply_to: both                    # both | probe (probe degrades only sample_2 of each pair)
+  drop_fta: false                   # keep pairs whose samples fail QC; FTA is still reported per sample
+  levels:
+    blur: {original: 0.0, low: 1.0, medium: 2.0, high: 3.0}        # Gaussian sigma in px
+    rotation: {original: 0, low: 10, medium: 20, high: 30}          # degrees, random sign, fixed seed
+

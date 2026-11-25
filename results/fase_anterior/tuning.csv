@@ -1,0 +1,4 @@
+variant,lr,freeze_until,epochs,seed,best_val_eer,best_epoch,last_val_eer,chosen
+baseline,1.0e-4,layer2,40,42,0.0498,23,0.0510,no
+higher_lr,3.0e-4,layer2,40,42,0.0425,40,0.0425,yes
+less_frozen,1.0e-4,layer1,40,42,0.0541,36,0.0571,no

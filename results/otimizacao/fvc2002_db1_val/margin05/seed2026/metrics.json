@@ -1,0 +1,22 @@
+{
+  "n_genuine": 560,
+  "n_impostor": 12160,
+  "threshold": 0.33754527568817133,
+  "fmr": 0.0375,
+  "fnmr": 0.0375,
+  "eer": 0.0375,
+  "eer_threshold": 0.33754527568817133,
+  "auc": 0.9924822309680451,
+  "d_prime": 4.0462727546691895,
+  "fmr100_fnmr": 0.18035714285714285,
+  "fmr1000_fnmr": 0.6625,
+  "tar_at_far_1pct": 0.8196428571428571,
+  "tar_at_far_0_1pct": 0.3375,
+  "fta": 0.0,
+  "far": 0.0375,
+  "frr": 0.0375,
+  "pairs_dropped": 0.0,
+  "fta_note": "fta is the per-sample failure-to-acquire rate from qc.csv over the samples in these pairs; pairs_dropped is the fraction of pairs removed because one of their samples failed",
+  "evaluated_on": "protocols/fvc2002_db1_val/validation_pairs.csv",
+  "threshold_source": "protocols/fvc2002_db1_val/validation_pairs.csv"
+}

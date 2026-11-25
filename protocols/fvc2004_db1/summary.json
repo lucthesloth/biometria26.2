@@ -1,0 +1,25 @@
+{
+  "mode": "split",
+  "dataset": "fvc2004_db1",
+  "n_images": 880,
+  "seed": 42,
+  "impostor_mode": "all",
+  "train_fingers": 60,
+  "validation_fingers": 20,
+  "test_fingers": 30,
+  "validation_genuine": 560,
+  "validation_impostor": 12160,
+  "n_genuine": 840,
+  "n_impostor": 27840,
+  "fingers_per_source_and_split": {
+    "train": {
+      "fvc2004_db1": 60
+    },
+    "validation": {
+      "fvc2004_db1": 20
+    },
+    "test": {
+      "fvc2004_db1": 30
+    }
+  }
+}

@@ -1,0 +1,9 @@
+rede,candidato,normalizacao,mudanca,eer_validacao_lso_pct,tempo_treino_s
+resnet50,hong,hong,configuracao original,8.06,251
+resnet50,gabor,gabor,realce de Gabor,6.54,251
+resnet50,hong_strong,hong,distorcao elastica e apagamento aleatorio,8.27,1268
+resnet50,gabor_strong,gabor,realce de Gabor + distorcao elastica e apagamento,7.12,1305
+resnet50,gabor_layer1,gabor,realce de Gabor + congelamento so ate layer1,6.19,313
+resnet50,gabor_e80,gabor,realce de Gabor + 80 epocas (escolhida para a ResNet-50),5.64,474
+convnext_tiny,convnext_lr3e-4,gabor,configuracao gabor_e80 (escolhida),5.71,595
+convnext_tiny,convnext_lr1e-4,gabor,configuracao gabor_e80 com lr 1e-4,7.77,623
